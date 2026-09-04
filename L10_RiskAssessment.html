@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L10 Demo: Risk Assessment &amp; MCE — Risk Calculator</title>
+<link rel="stylesheet" href="lib/leaflet/leaflet.css" />
+<script src="lib/leaflet/leaflet.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; height: 100vh; display: flex; flex-direction: column; background: #f5f5f5; }
+  .header { background: linear-gradient(135deg, #1a5276, #2980b9); color: white; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 1.2em; font-weight: 600; }
+  .header .subtitle { font-size: 0.85em; opacity: 0.9; }
+  .header .badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-size: 0.8em; }
+  .main { display: flex; flex: 1; overflow: hidden; }
+  /* White rather than Leaflet's default #ddd, so the faded basemap below reads
+     as washed-back rather than muddy grey. */
+  #map { flex: 1; min-width: 0; background: #ffffff; }
+  .panel { width: 400px; background: white; overflow-y: auto; border-left: 2px solid #e0e0e0; display: flex; flex-direction: column; }
+  .panel-header { background: #2c3e50; color: white; padding: 16px; text-align: center; }
+  .panel-header h2 { font-size: 1.1em; margin-bottom: 4px; }
+  .panel-header p { font-size: 0.8em; opacity: 0.8; }
+  .control-section { padding: 16px; border-bottom: 1px solid #eee; }
+  .control-section h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .layer-toggle { display: flex; align-items: center; padding: 6px 0; cursor: pointer; }
+  .layer-toggle input { margin-right: 10px; transform: scale(1.2); cursor: pointer; }
+  .layer-toggle .swatch { width: 20px; height: 14px; border-radius: 3px; margin-right: 8px; border: 1px solid #ccc; display: inline-block; }
+  .layer-toggle label { font-size: 0.9em; cursor: pointer; flex: 1; }
+  .slider-container { padding: 6px 0; }
+  .slider-container input[type=range] { width: 100%; margin: 5px 0; }
+  .slider-label { display: flex; justify-content: space-between; font-size: 0.85em; color: #555; }
+  .question-section { padding: 16px; flex: 1; }
+  .question-section h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .question { background: #f8f9fa; border-left: 4px solid #2980b9; padding: 12px; margin-bottom: 12px; border-radius: 0 6px 6px 0; }
+  .question .q-number { font-weight: 700; color: #2980b9; font-size: 0.85em; }
+  .question p { font-size: 0.88em; color: #333; margin-top: 4px; line-height: 1.5; }
+  .info-box { background: #eaf2f8; border: 1px solid #2980b9; border-radius: 6px; padding: 12px; margin: 12px 16px; font-size: 0.85em; line-height: 1.5; }
+  .info-box strong { color: #1a5276; }
+  .footer-note { padding: 12px 16px; background: #f0f0f0; font-size: 0.75em; color: #888; text-align: center; border-top: 1px solid #ddd; }
+
+  /* Weight sliders with colour coding */
+  .weight-slider-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .weight-label { font-size: 0.82em; width: 110px; font-weight: 600; }
+  .weight-label.hazard { color: #c0392b; }
+  .weight-label.exposure { color: #e67e22; }
+  .weight-label.vuln { color: #8e44ad; }
+  .weight-slider-row input[type=range] { flex: 1; }
+  .weight-val { font-size: 0.85em; font-weight: 700; width: 38px; text-align: right; }
+  .weight-val.hazard { color: #c0392b; }
+  .weight-val.exposure { color: #e67e22; }
+  .weight-val.vuln { color: #8e44ad; }
+
+  /* Weight bar chart */
+  .weight-bar { display: flex; height: 20px; border-radius: 4px; overflow: hidden; margin-top: 8px; border: 1px solid #ddd; }
+  .weight-bar-h { background: #c0392b; transition: width 0.2s; }
+  .weight-bar-e { background: #e67e22; transition: width 0.2s; }
+  .weight-bar-v { background: #8e44ad; transition: width 0.2s; }
+  .weight-sum-warn { font-size: 0.78em; color: #e74c3c; margin-top: 4px; display: none; }
+  .weight-sum-ok { font-size: 0.78em; color: #27ae60; margin-top: 4px; }
+
+  /* Economic impact panel */
+  .impact-table { width: 100%; border-collapse: collapse; font-size: 0.82em; }
+  .impact-table th { background: #2c3e50; color: white; padding: 5px 8px; text-align: left; font-weight: 600; }
+  .impact-table td { padding: 5px 8px; border-bottom: 1px solid #eee; }
+  .impact-table tr:last-child td { font-weight: 700; background: #fdebd0; }
+  .impact-table .currency { text-align: right; font-family: monospace; }
+  .impact-table .total-row td { border-top: 2px solid #e67e22; }
+
+  /* Mitigation comparison */
+  .mitigation-row { display: flex; gap: 8px; margin-top: 8px; }
+  .mitigation-card { flex: 1; background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; padding: 10px; font-size: 0.78em; }
+  .mitigation-card h4 { color: #2c3e50; font-size: 0.9em; margin-bottom: 6px; }
+  .mitigation-card .cost { font-weight: 700; font-size: 1.1em; color: #c0392b; }
+
+  .legend { background: white; padding: 8px 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.75em; line-height: 1.8; }
+  .legend-title { font-weight: 700; margin-bottom: 4px; color: #2c3e50; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-swatch { width: 24px; height: 10px; border-radius: 2px; display: inline-block; }
+
+  .sea-level-display { font-size: 1.4em; font-weight: bold; color: #c0392b; text-align: center; margin: 2px 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>ENCN205 — Lecture 10: Risk Assessment &amp; MCE</h1>
+    <div class="subtitle">Interactive Demo: Risk Calculator — New Brighton, Christchurch</div>
+  </div>
+  <div class="badge">~10 min activity</div>
+</div>
+
+<div class="main">
+  <div id="map"></div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Multi-Criteria Risk Calculator</h2>
+      <p>Adjust weights and sea level to explore coastal flood risk</p>
+    </div>
+
+    <!-- MCE Weight Sliders -->
+    <div class="control-section">
+      <h3>MCE Weights (auto-normalised)</h3>
+
+      <div class="weight-slider-row">
+        <span class="weight-label hazard">Hazard</span>
+        <input type="range" id="wHazard" min="0" max="100" value="40" step="1" oninput="onWeightChange('h')">
+        <span class="weight-val hazard" id="wHazardVal">40%</span>
+      </div>
+      <div class="weight-slider-row">
+        <span class="weight-label exposure">Exposure</span>
+        <input type="range" id="wExposure" min="0" max="100" value="35" step="1" oninput="onWeightChange('e')">
+        <span class="weight-val exposure" id="wExposureVal">35%</span>
+      </div>
+      <div class="weight-slider-row">
+        <span class="weight-label vuln">Vulnerability</span>
+        <input type="range" id="wVuln" min="0" max="100" value="25" step="1" oninput="onWeightChange('v')">
+        <span class="weight-val vuln" id="wVulnVal">25%</span>
+      </div>
+
+      <div class="weight-bar">
+        <div class="weight-bar-h" id="barH" style="width:40%"></div>
+        <div class="weight-bar-e" id="barE" style="width:35%"></div>
+        <div class="weight-bar-v" id="barV" style="width:25%"></div>
+      </div>
+      <div class="weight-sum-ok" id="weightSumOk">Weights sum to 100% ✓</div>
+      <div class="weight-sum-warn" id="weightSumWarn">Weights don't sum to 100%</div>
+    </div>
+
+    <!-- Sea Level -->
+    <div class="control-section">
+      <h3>Sea Level Scenario</h3>
+      <div class="sea-level-display" id="seaLevelDisplay">1m sea level rise</div>
+      <div class="slider-container">
+        <input type="range" id="seaLevelSlider" min="0" max="4" value="1" step="1" oninput="onSeaLevelChange()">
+        <div class="slider-label"><span>Off</span><span>1m</span><span>2m</span><span>3m</span><span>4m</span></div>
+      </div>
+    </div>
+
+    <!-- Map Layers -->
+    <div class="control-section">
+      <h3>Map Layers (exposure context)</h3>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkCoastline" checked onchange="toggleContextLayer('chkCoastline')">
+        <span class="swatch" style="background:#2980b9;"></span>
+        <label for="chkCoastline">Coastline</label>
+      </div>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkRoads" checked onchange="toggleContextLayer('chkRoads')">
+        <span class="swatch" style="background:#7f8c8d;"></span>
+        <label for="chkRoads">Roads</label>
+      </div>
+    </div>
+
+    <!-- Economic Impact -->
+    <div class="control-section">
+      <h3>Economic Impact Estimate</h3>
+      <table class="impact-table">
+        <tr><th>Metric</th><th class="currency">Value</th></tr>
+        <tr><td>Flooded area</td><td class="currency" id="eArea">—</td></tr>
+        <tr><td>Flooded houses</td><td class="currency" id="eHouses">—</td></tr>
+        <tr><td>Flooded roads</td><td class="currency" id="eRoads">—</td></tr>
+        <tr><td>House losses</td><td class="currency" id="eHouseLoss">—</td></tr>
+        <tr><td>Road losses</td><td class="currency" id="eRoadLoss">—</td></tr>
+        <tr class="total-row"><td><strong>Total losses</strong></td><td class="currency" id="eTotal">—</td></tr>
+      </table>
+    </div>
+
+    <!-- Mitigation -->
+    <div class="control-section">
+      <h3>Mitigation Comparison</h3>
+      <div class="mitigation-row">
+        <div class="mitigation-card">
+          <h4>Seawall</h4>
+          <div>12 km × $50M/km base</div>
+          <div>+$10M/km per m above 2m</div>
+          <div class="cost" id="mSeawall">—</div>
+        </div>
+        <div class="mitigation-card">
+          <h4>Managed Retreat</h4>
+          <div>Relocate flooded houses</div>
+          <div>× 4 people × $264,450</div>
+          <div class="cost" id="mRelocate">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-box" style="background:#fef9e7;border-color:#e67e22;">
+      <strong>What you are looking at:</strong> every <strong>building</strong> in the study area, coloured by its combined MCE risk score. Each building's elevation is sampled from the nearest LINZ contour line; the contours themselves are not drawn. Grey buildings have no contour within <span id="elevRadius">1000</span> m, so their elevation would be a guess — <span id="unknownCount">—</span> of <span id="totalCount">—</span> buildings. The dashed dark-blue line is the flood boundary.
+    </div>
+
+    <div class="info-box">
+      <strong>Risk = Hazard × Exposure × Vulnerability.</strong> Hazard is the probability/magnitude of the flood event. Exposure is what is in the flood zone (buildings, roads). Vulnerability is the susceptibility of those assets to damage. The three are combined as a <em>weighted product</em>, so any component of zero gives zero risk — with the scenario Off there is no hazard, and therefore no flood risk anywhere, however exposed a building is.
+    </div>
+
+    <!-- Questions -->
+    <div class="question-section">
+      <h3>Guided Questions</h3>
+
+      <div class="question">
+        <span class="q-number">Q1</span>
+        <p>Look at the risk map. <strong>Identify each MCE component</strong> for the New Brighton flood scenario. What data layer represents Hazard? Exposure? Vulnerability?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q2</span>
+        <p>Set weights to <strong>Hazard 60%, Exposure 30%, Vulnerability 10%</strong>. Then change to <strong>equal weights (33/33/33)</strong>. How does the risk map change? Which weighting is more appropriate for coastal flood planning?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q3</span>
+        <p>At <strong>2 m sea level rise</strong>, what is the estimated total economic loss? Read from the impact panel. Are the $600k/house and $1.5M/km road assumptions reasonable for Christchurch in 2025?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q4</span>
+        <p>Compare the <strong>seawall cost</strong> vs <strong>relocation cost</strong> at your chosen sea level. Which strategy do you recommend and why? Consider both economics and non-monetary factors.</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q5</span>
+        <p>Why is <strong>sensitivity analysis</strong> essential in MCE? Change one weight by ±20% — does the highest-risk area change location? What does this tell you about result robustness?</p>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      ENCN205 Applied Data Analysis — GIS Component<br>
+      University of Canterbury | Data: LINZ, Stats NZ
+    </div>
+  </div>
+</div>
+
+<!-- Data files -->
+<script src="data/study_area.js"></script>
+<script src="data/contours.js"></script>
+<script src="data/flood_zones.js"></script>
+<script src="data/coastline.js"></script>
+<script src="data/roads.js"></script>
+<script src="data/buildings.js"></script>
+
+<script>
+
+// ── Map Setup ─────────────────────────────────────────────────────────────────
+var map = L.map('map', { zoomControl: true, attributionControl: true });
+
+// Basemap held well back: the risk contours are the message, and full-strength
+// OSM (orange roads, green parks, dense labels) competes with the colour ramp.
+var BASEMAP_OPACITY = 0.4;
+var baseTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors', maxZoom: 18,
+  opacity: BASEMAP_OPACITY
+}).addTo(map);
+map.fitBounds(studyArea.bounds);
+
+// ── Context layers: coastline & roads (the visible exposure context) ─────────
+var coastlineLayer = L.geoJSON(coastlineData, {
+  style: { color: '#2980b9', weight: 2, fillColor: '#aed6f1', fillOpacity: 0.15 }
+}).addTo(map);
+
+var roadsLayer = L.geoJSON(roadsData, {
+  style: { color: '#7f8c8d', weight: 1, opacity: 0.6 }
+}).addTo(map);
+
+function toggleContextLayer(id) {
+  var layer = id === 'chkCoastline' ? coastlineLayer : roadsLayer;
+  if (document.getElementById(id).checked) {
+    if (!map.hasLayer(layer)) layer.addTo(map);
+  } else {
+    if (map.hasLayer(layer)) map.removeLayer(layer);
+  }
+}
+
+// ── Sea level mapping: slider index → sea level values (metres) ──────────────
+var seaLevels = [0, 1.0, 2.0, 3.0, 4.0];
+
+// ── Flood area: direct lookup of measured extents (km²) per sea level ────────
+// Measured from the flood-zone data: 1 m → 0.06, 2 m → 2.39, 3 m → 3.33 km².
+// 4 m has no measured extent — we show an explicitly-labelled extrapolation.
+var floodAreaLookup = { 1: 0.06, 2: 2.39, 3: 3.33 };
+var FLOOD_AREA_4M_EST = 4.3; // km², rough extrapolation beyond measured data
+function floodAreaKm2(seaLevel) {
+  if (seaLevel <= 0) return 0;
+  if (floodAreaLookup.hasOwnProperty(seaLevel)) return floodAreaLookup[seaLevel];
+  return FLOOD_AREA_4M_EST;
+}
+function floodAreaIsEstimate(seaLevel) {
+  return seaLevel > 0 && !floodAreaLookup.hasOwnProperty(seaLevel);
+}
+
+function formatCurrency(v) {
+  if (v >= 1e9) return '$' + (v/1e9).toFixed(2) + 'B';
+  if (v >= 1e6) return '$' + (v/1e6).toFixed(1) + 'M';
+  return '$' + Math.round(v).toLocaleString();
+}
+
+// ── Local metric frame ───────────────────────────────────────────────────────
+var M_PER_DEG_LAT = 6371000 * Math.PI / 180;
+var M_PER_DEG_LNG = M_PER_DEG_LAT * Math.cos(studyArea.center[0] * Math.PI / 180);
+function mx(lng) { return lng * M_PER_DEG_LNG; }
+function my(lat) { return lat * M_PER_DEG_LAT; }
+
+// ── Contours: an elevation source, not a drawn layer ─────────────────────────
+// Every contour vertex carries an elevation, so the nearest vertex to a building
+// gives that building an elevation. This is nearest-neighbour sampling, not true
+// interpolation — the contours are the only elevation data available for New
+// Brighton (the LINZ 8 m DEM is NZTM and documented as unfit for terrain work).
+var ELEV_MAX_DIST = 1000;    // m — beyond this the sampled elevation is a guess
+var contourPts = [];         // [x, y, elevation]
+var maxElev = 0;
+contoursData.features.forEach(function(f) {
+  var e = f.properties.elevation || 0;
+  if (e > maxElev) maxElev = e;
+  var g = f.geometry;
+  var lines = g.type === 'MultiLineString' ? g.coordinates : [g.coordinates];
+  lines.forEach(function(ln) {
+    for (var i = 0; i < ln.length; i++) contourPts.push([mx(ln[i][0]), my(ln[i][1]), e]);
+  });
+});
+
+// Uniform grid over the contour vertices so the nearest-vertex lookup for 41k
+// buildings stays cheap (a brute-force scan would be ~146M distance tests).
+var CELL = 400;
+var contourGrid = {};
+contourPts.forEach(function(p, i) {
+  var k = Math.floor(p[0] / CELL) + ':' + Math.floor(p[1] / CELL);
+  (contourGrid[k] || (contourGrid[k] = [])).push(i);
+});
+
+function sampleElevation(x, y) {
+  var gx = Math.floor(x / CELL), gy = Math.floor(y / CELL);
+  var best = null, bestD2 = Infinity;
+  for (var ring = 0; ring < 40; ring++) {
+    for (var dx = -ring; dx <= ring; dx++) {
+      for (var dy = -ring; dy <= ring; dy++) {
+        if (ring > 0 && Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
+        var cell = contourGrid[(gx + dx) + ':' + (gy + dy)];
+        if (!cell) continue;
+        for (var j = 0; j < cell.length; j++) {
+          var p = contourPts[cell[j]];
+          var d2 = (p[0] - x) * (p[0] - x) + (p[1] - y) * (p[1] - y);
+          if (d2 < bestD2) { bestD2 = d2; best = p[2]; }
+        }
+      }
+    }
+    // one extra ring past the first hit, so a closer vertex in a neighbouring
+    // cell cannot be missed
+    if (best !== null && ring >= Math.ceil(Math.sqrt(bestD2) / CELL)) break;
+  }
+  return { elev: best, dist: best === null ? Infinity : Math.sqrt(bestD2) };
+}
+
+// ── Buildings: the unit that risk is actually scored on ──────────────────────
+var coastLng = studyArea.bounds[1][1];   // eastern edge — the coast side
+var buildings = buildingsData.features;
+var bElev = new Float32Array(buildings.length);
+var bArea = new Float32Array(buildings.length);
+var bCoastD = new Float32Array(buildings.length);
+var bKnown = new Uint8Array(buildings.length);   // 1 = elevation is trustworthy
+var maxCoastD = 0, maxArea = 0, unknownElev = 0;
+
+buildings.forEach(function(f, i) {
+  var g = f.geometry;
+  var ring = g.type === 'Polygon' ? g.coordinates[0] : g.coordinates[0][0];
+  var sx = 0, sy = 0, area2 = 0;
+  for (var k = 0; k < ring.length; k++) {
+    var x = mx(ring[k][0]), y = my(ring[k][1]);
+    sx += x; sy += y;
+    var n = (k + 1) % ring.length;
+    area2 += x * my(ring[n][1]) - mx(ring[n][0]) * y;   // shoelace
+  }
+  var cx = sx / ring.length, cy = sy / ring.length;
+  bArea[i] = Math.abs(area2) / 2;
+  if (bArea[i] > maxArea) maxArea = bArea[i];
+
+  var s = sampleElevation(cx, cy);
+  bKnown[i] = (s.elev !== null && s.dist <= ELEV_MAX_DIST) ? 1 : 0;
+  bElev[i] = s.elev === null ? maxElev : s.elev;
+  if (!bKnown[i]) unknownElev++;
+
+  var d = Math.abs(cx - mx(coastLng));
+  bCoastD[i] = d;
+  if (d > maxCoastD) maxCoastD = d;
+});
+
+// Footprint areas are long-tailed — a handful of warehouses are orders of
+// magnitude larger than a house. Normalising exposure against the largest
+// building would push every dwelling to the bottom of the scale, so the 99th
+// percentile is the reference and the few above it simply saturate.
+var areaRef = (function() {
+  var sorted = Array.prototype.slice.call(bArea).sort(function(a, b) { return a - b; });
+  return sorted[Math.floor(sorted.length * 0.99)] || maxArea || 1;
+})();
+
+// ── Risk scoring ──────────────────────────────────────────────────────────────
+function computeRiskScores(seaLevel, wH, wE, wV) {
+  // Normalise weights to sum to 1
+  var wSum = wH + wE + wV;
+  if (wSum === 0) wSum = 1;
+  var nH = wH / wSum, nE = wE / wSum, nV = wV / wSum;
+
+  var out = new Float32Array(buildings.length);
+  for (var i = 0; i < buildings.length; i++) {
+    var elev = bElev[i];
+
+    // Hazard — flood depth at the building. The +0.5 m treats a building sitting
+    // exactly on the waterline contour as shallowly flooded rather than dry;
+    // without it a whole scenario can score identically to "Off".
+    var hazard = elev <= seaLevel ? (seaLevel - elev + 0.5) / Math.max(seaLevel, 0.1) * 10 : 0;
+    if (hazard > 10) hazard = 10;
+
+    // Exposure — what is at stake. Now that risk is scored on real buildings,
+    // footprint area is the exposure measure (bigger building = more value and
+    // occupancy at risk). The old elevation-bucket rule was only ever a stand-in
+    // for "where the buildings are", and it made exposure a copy of hazard, so
+    // shifting weight between the two barely changed the map.
+    // sqrt keeps a handful of very large footprints from flattening the rest.
+    var exposure = 10 * Math.sqrt(bArea[i] / areaRef);
+    if (exposure > 10) exposure = 10;
+
+    // Vulnerability — proximity to the coast, low ground more vulnerable.
+    var distFrac = maxCoastD > 0 ? bCoastD[i] / maxCoastD : 0.5;
+    var vuln = 10 * (1 - distFrac) * (1 - elev / (maxElev + 1));
+    if (vuln < 0) vuln = 0; else if (vuln > 10) vuln = 10;
+
+    // Combine multiplicatively, as a weighted geometric mean. Risk = H × E × V
+    // means a zero in ANY component gives zero risk — with no sea level rise
+    // there is no flood hazard, so a large building near the coast is not at
+    // flood risk however exposed it is. A weighted SUM does not do this: the
+    // components compensate, and the map showed buildings at 4.5/5 with the
+    // hazard term identically zero.
+    // Math.pow(x, 0) is 1, so a component given zero weight drops out cleanly.
+    out[i] = 10 * Math.pow(hazard / 10, nH) *
+                  Math.pow(exposure / 10, nE) *
+                  Math.pow(vuln / 10, nV);
+  }
+  return out;
+}
+
+// ── Risk score range the ramp is anchored to ─────────────────────────────────
+// Anchored to the scores that actually occur at the default weighting across
+// every sea level, using the 1st-99th percentile so a few outliers cannot
+// stretch the ramp. Scores outside that band clamp, which is why a pure-hazard
+// weighting produces a visibly redder map than a balanced one.
+//
+// Deliberately NOT the absolute min/max over the pure weightings: a single
+// oversized building scoring 10 under pure exposure would push everything the
+// user normally sees into the green-amber half of the ramp.
+// Deliberately NOT recomputed per render: a ramp restretched on every redraw
+// makes the colours relative, so raising sea level would appear to do nothing.
+var RISK_MIN = 0;
+var RISK_MAX = 3;   // scores at or above 3 all render red
+
+// ── Risk colour ramp: green → yellow → red across the attainable range ───────
+function riskColorSimple(score) {
+  var span = RISK_MAX - RISK_MIN;
+  var t = span > 0 ? (score - RISK_MIN) / span : 0;
+  t = Math.min(1, Math.max(0, t));
+  var r, g;
+  if (t < 0.5) {
+    r = Math.round(t * 2 * 255);
+    g = 200;
+  } else {
+    r = 255;
+    g = Math.round((1 - (t - 0.5) * 2) * 200);
+  }
+  return 'rgb(' + r + ',' + g + ',0)';
+}
+
+// ── Layers ────────────────────────────────────────────────────────────────────
+var floodBoundaryLayer = null;
+var NO_DATA_COLOR = '#c8ccd0';
+var currentScores = null;
+
+// The building layer is built once and restyled in place. Rebuilding 41k
+// features on every slider move would make the sliders unusable.
+var buildingIndex = new WeakMap();
+var _bi = 0;
+var riskLayer = L.geoJSON(buildingsData, {
+  renderer: L.canvas(),
+  style: { color: NO_DATA_COLOR, weight: 0.3, fillColor: NO_DATA_COLOR, fillOpacity: 0.75 },
+  onEachFeature: function(f, layer) {
+    var i = _bi++;
+    buildingIndex.set(layer, i);
+    layer.bindPopup(function() {
+      var s = currentScores ? currentScores[i] : 0;
+      return '<b>Risk score:</b> ' + s.toFixed(2) +
+             '<br><b>Elevation:</b> ' + (bKnown[i] ? bElev[i].toFixed(0) + ' m'
+                                                   : 'no contour data nearby') +
+             '<br><b>Footprint:</b> ' + bArea[i].toFixed(0) + ' m²';
+    });
+  }
+}).addTo(map);
+
+function renderRisk() {
+  if (floodBoundaryLayer) { map.removeLayer(floodBoundaryLayer); floodBoundaryLayer = null; }
+
+  var sliderVal = parseInt(document.getElementById('seaLevelSlider').value);
+  var seaLevel = seaLevels[sliderVal];
+  var wH = parseInt(document.getElementById('wHazard').value);
+  var wE = parseInt(document.getElementById('wExposure').value);
+  var wV = parseInt(document.getElementById('wVuln').value);
+
+  var wSum = wH + wE + wV;
+  if (wSum === 0) { wH = wE = wV = 33.3; wSum = 100; }
+
+  currentScores = computeRiskScores(seaLevel, wH, wE, wV);
+
+  riskLayer.eachLayer(function(layer) {
+    var i = buildingIndex.get(layer);
+    if (i === undefined) return;
+    // Buildings with no contour within ELEV_MAX_DIST have a fabricated
+    // elevation, so they are shown as no-data rather than given a risk colour.
+    var col = bKnown[i] ? riskColorSimple(currentScores[i]) : NO_DATA_COLOR;
+    layer.setStyle({ color: col, fillColor: col,
+                     fillOpacity: bKnown[i] ? 0.85 : 0.35, weight: 0.3 });
+  });
+
+  // Flood boundary overlay
+  var key = seaLevel.toFixed(1).replace('.', '_');
+  var fdata = floodZonesData[key];
+  if (fdata) {
+    floodBoundaryLayer = L.geoJSON(fdata, {
+      style: { color: '#1a5276', weight: 2, opacity: 0.7, dashArray: '6,4' }
+    }).addTo(map);
+  }
+
+  updateEconomics(seaLevel, wH, wE, wV);
+  updateLegend();
+}
+
+// ── Economic calculations ─────────────────────────────────────────────────────
+function updateEconomics(seaLevel, wH, wE, wV) {
+  var areaKm2 = floodAreaKm2(seaLevel);
+  var isEst = floodAreaIsEstimate(seaLevel);
+  var roadsKm  = areaKm2 * 10;        // 10 km road per km²
+  var houses   = Math.round(areaKm2 * 150);  // 150 houses/km²
+  var houseLoss = houses * 600000;
+  var roadLoss  = roadsKm * 1500000;
+  var total     = houseLoss + roadLoss;
+
+  document.getElementById('eArea').textContent    = (isEst ? '≈' : '') + areaKm2.toFixed(2) + ' km²' + (isEst ? ' (extrapolated est.)' : '');
+  document.getElementById('eHouses').textContent  = houses.toLocaleString();
+  document.getElementById('eRoads').textContent   = roadsKm.toFixed(1) + ' km';
+  document.getElementById('eHouseLoss').textContent = formatCurrency(houseLoss);
+  document.getElementById('eRoadLoss').textContent  = formatCurrency(roadLoss);
+  document.getElementById('eTotal').textContent     = formatCurrency(total);
+
+  // Mitigation costs
+  var extraM = Math.max(0, seaLevel - 2);
+  var seawallCost = 12 * (50e6 + extraM * 10e6);  // 12 km × base + extra per metre
+  var relocateCost = houses * 4 * 264450;
+
+  document.getElementById('mSeawall').textContent  = formatCurrency(seawallCost);
+  document.getElementById('mRelocate').textContent = formatCurrency(relocateCost);
+}
+
+// ── Weight handling ───────────────────────────────────────────────────────────
+function onWeightChange(changed) {
+  var h = parseInt(document.getElementById('wHazard').value);
+  var e = parseInt(document.getElementById('wExposure').value);
+  var v = parseInt(document.getElementById('wVuln').value);
+  var total = h + e + v;
+
+  // Display raw values (user sees what they set)
+  document.getElementById('wHazardVal').textContent  = h + '%';
+  document.getElementById('wExposureVal').textContent = e + '%';
+  document.getElementById('wVulnVal').textContent    = v + '%';
+
+  // Bar chart uses normalised values
+  var s = total > 0 ? total : 1;
+  document.getElementById('barH').style.width = (h/s*100).toFixed(1) + '%';
+  document.getElementById('barE').style.width = (e/s*100).toFixed(1) + '%';
+  document.getElementById('barV').style.width = (v/s*100).toFixed(1) + '%';
+
+  var warn = document.getElementById('weightSumWarn');
+  var ok   = document.getElementById('weightSumOk');
+  if (total === 100) { warn.style.display = 'none'; ok.style.display = 'block'; }
+  else { warn.style.display = 'block'; ok.style.display = 'none'; warn.textContent = 'Weights sum to ' + total + '% (will be auto-normalised)'; }
+
+  renderRisk();
+}
+
+function onSeaLevelChange() {
+  var idx = parseInt(document.getElementById('seaLevelSlider').value);
+  document.getElementById('seaLevelDisplay').textContent = idx === 0 ? 'Off' : seaLevels[idx] + 'm sea level rise';
+  renderRisk();
+}
+
+// ── Legend ────────────────────────────────────────────────────────────────────
+var legendControl = L.control({ position: 'bottomleft' });
+legendControl.onAdd = function() {
+  var div = L.DomUtil.create('div', 'legend');
+  div.id = 'legendDiv';
+  return div;
+};
+legendControl.addTo(map);
+
+function updateLegend() {
+  var div = document.getElementById('legendDiv');
+  var ticks = [];
+  for (var i = 0; i <= 4; i++) ticks.push(RISK_MIN + (RISK_MAX - RISK_MIN) * i / 4);
+  div.innerHTML = '<div class="legend-title">Risk score — buildings</div>' +
+    ticks.slice().reverse().map(function(v, k) {
+      return '<div class="legend-item"><span class="legend-swatch" style="background:' +
+             riskColorSimple(v) + '"></span>' + v.toFixed(1) +
+             (k === 0 ? '+' : '') + '</div>';   // top class is open-ended
+    }).join('') +
+    '<div class="legend-item"><span class="legend-swatch" style="background:' + NO_DATA_COLOR +
+    '"></span>no elevation data</div>' +
+    '<div class="legend-item" style="margin-top:4px"><span class="legend-swatch" style="background:#1a5276;opacity:0.6"></span>Flood boundary</div>' +
+    '<div class="legend-item"><span class="legend-swatch" style="background:#2980b9;opacity:0.7"></span>Coastline</div>' +
+    '<div class="legend-item"><span class="legend-swatch" style="background:#7f8c8d;opacity:0.7"></span>Roads</div>';
+}
+
+// ── Initial render ────────────────────────────────────────────────────────────
+document.getElementById('elevRadius').textContent = ELEV_MAX_DIST;
+document.getElementById('unknownCount').textContent = unknownElev.toLocaleString();
+document.getElementById('totalCount').textContent = buildings.length.toLocaleString();
+renderRisk();
+</script>
+</body>
+</html>

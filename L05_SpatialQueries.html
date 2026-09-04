@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L05 Demo: Spatial Relationships — Spatial Query Explorer</title>
+<link rel="stylesheet" href="lib/leaflet/leaflet.css" />
+<script src="lib/leaflet/leaflet.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; height: 100vh; display: flex; flex-direction: column; background: #f5f5f5; }
+  .header { background: linear-gradient(135deg, #1a5276, #2980b9); color: white; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 1.2em; font-weight: 600; }
+  .header .subtitle { font-size: 0.85em; opacity: 0.9; }
+  .header .badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-size: 0.8em; }
+  .main { display: flex; flex: 1; overflow: hidden; }
+  #map { flex: 1; min-width: 0; }
+  .panel { width: 380px; background: white; overflow-y: auto; border-left: 2px solid #e0e0e0; display: flex; flex-direction: column; }
+  .panel-header { background: #2c3e50; color: white; padding: 16px; text-align: center; }
+  .panel-header h2 { font-size: 1.1em; margin-bottom: 4px; }
+  .panel-header p { font-size: 0.8em; opacity: 0.8; }
+  .control-section { padding: 16px; border-bottom: 1px solid #eee; }
+  .control-section h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .layer-toggle { display: flex; align-items: center; padding: 6px 0; cursor: pointer; }
+  .layer-toggle input { margin-right: 10px; transform: scale(1.2); cursor: pointer; }
+  .layer-toggle .swatch { width: 20px; height: 14px; border-radius: 3px; margin-right: 8px; border: 1px solid #ccc; display: inline-block; }
+  .layer-toggle label { font-size: 0.9em; cursor: pointer; flex: 1; }
+  .slider-container { padding: 8px 0; }
+  .slider-container input[type=range] { width: 100%; margin: 8px 0; }
+  .slider-label { display: flex; justify-content: space-between; font-size: 0.85em; color: #555; }
+  .question-section { padding: 16px; flex: 1; }
+  .question-section h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .question { background: #f8f9fa; border-left: 4px solid #2980b9; padding: 12px; margin-bottom: 12px; border-radius: 0 6px 6px 0; }
+  .question .q-number { font-weight: 700; color: #2980b9; font-size: 0.85em; }
+  .question p { font-size: 0.88em; color: #333; margin-top: 4px; line-height: 1.5; }
+  .info-box { background: #eaf2f8; border: 1px solid #2980b9; border-radius: 6px; padding: 12px; margin: 12px 16px; font-size: 0.85em; line-height: 1.5; }
+  .info-box strong { color: #1a5276; }
+  .footer-note { padding: 12px 16px; background: #f0f0f0; font-size: 0.75em; color: #888; text-align: center; border-top: 1px solid #ddd; }
+
+  .stats-bar { display: flex; gap: 6px; padding: 8px 16px; background: #f8f9fa; border-bottom: 1px solid #eee; flex-wrap: wrap; }
+  .stat { background: white; border: 1px solid #ddd; border-radius: 4px; padding: 4px 8px; font-size: 0.75em; }
+  .stat .val { font-weight: 700; color: #2980b9; }
+  .buffer-value { font-size: 1.2em; font-weight: bold; color: #e67e22; text-align: center; margin: 4px 0; }
+
+  select.predicate-select { width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9em; margin-top: 6px; cursor: pointer; }
+  .predicate-desc { font-size: 0.8em; color: #666; margin-top: 6px; font-style: italic; }
+  .note { font-size: 0.75em; color: #888; margin-top: 6px; line-height: 1.4; }
+  #loading { position: absolute; z-index: 1200; top: 50%; left: 30%; transform: translate(-50%,-50%); background: rgba(255,255,255,0.95); border: 1px solid #2980b9; border-radius: 6px; padding: 14px 22px; font-size: 0.9em; color: #1a5276; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+  .basemap-tiles { filter: saturate(0.25) brightness(1.12) contrast(0.9); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>ENCN205 — Lecture 05: Spatial Relationships</h1>
+    <div class="subtitle">Interactive Demo: Spatial Query Explorer — New Brighton, Christchurch</div>
+  </div>
+  <div class="badge">~10 min activity</div>
+</div>
+
+<div class="main">
+  <div id="map"><div id="loading">Loading 41,000 buildings and pre-computing distances…</div></div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Spatial Query Explorer</h2>
+      <p>Apply buffer queries and spatial predicates to explore relationships between layers</p>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat">Buildings near marae: <span class="val" id="statBuffer">—</span></div>
+      <div class="stat">Buildings match: <span class="val" id="statPredicate">—</span></div>
+      <div class="stat">Roads match: <span class="val" id="statRoads">—</span></div>
+    </div>
+
+    <div class="control-section">
+      <h3>Marae Buffer Distance</h3>
+      <div class="buffer-value" id="bufferValue">No buffer</div>
+      <div class="slider-container">
+        <input type="range" id="bufferSlider" min="0" max="4" value="0" step="1">
+        <div class="slider-label">
+          <span>0</span><span>200m</span><span>500m</span><span>1km</span><span>2km</span>
+        </div>
+      </div>
+      <div class="note">Marae locations are approximate (rounded for data sovereignty) — buffer counts are indicative only. Of the five marae shown, only <strong>Ngā Hau E Whā</strong> lies inside the New Brighton study area, so it drives nearly all the counts.</div>
+    </div>
+
+    <div class="control-section">
+      <h3>Spatial Predicate (features vs marae buffer)</h3>
+      <select class="predicate-select" id="predicateSelect">
+        <option value="none">— Select a predicate —</option>
+        <option value="intersects">Intersects — feature touches the buffer</option>
+        <option value="within">Within — feature completely inside the buffer</option>
+        <option value="contains">Contains — buffer fully inside the feature</option>
+        <option value="disjoint">Disjoint — feature has no contact with the buffer</option>
+      </select>
+      <div class="predicate-desc" id="predicateDesc">Select a spatial predicate above to highlight matching features.</div>
+    </div>
+
+    <div class="control-section">
+      <h3>Map Layers</h3>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkCoastline" checked>
+        <span class="swatch" style="background:#27ae60;"></span>
+        <label for="chkCoastline">Coastline</label>
+      </div>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkRoads" checked>
+        <span class="swatch" style="background:#7f8c8d;"></span>
+        <label for="chkRoads">Roads</label>
+      </div>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkBuildings" checked>
+        <span class="swatch" style="background:#e67e22;"></span>
+        <label for="chkBuildings">Buildings</label>
+      </div>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkMarae" checked>
+        <span class="swatch" style="background:#e91e63;"></span>
+        <label for="chkMarae">Marae</label>
+      </div>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkBuffer" checked>
+        <span class="swatch" style="background:#e91e63; opacity:0.4;"></span>
+        <label for="chkBuffer">Marae Buffer</label>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <strong>Spatial predicates</strong> describe how two geometries relate: <em>intersects</em> (any overlap), <em>within</em> (one inside another), <em>contains</em> (inverse of within), <em>disjoint</em> (no shared space). These are the building blocks of all GIS analysis.
+    </div>
+
+    <div class="question-section">
+      <h3>Guided Questions</h3>
+
+      <div class="question">
+        <span class="q-number">Q1</span>
+        <p>Set the marae buffer to 200m. How many buildings fall within this buffer? Now try 1km. How does the <strong>buffer operation</strong> transform a point geometry (marae) into an area you can query against?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q2</span>
+        <p>Set the buffer to 500m and switch between <em>Intersects</em> and <em>Within</em>. Why do far more <strong>roads</strong> match Intersects than Within, while for <strong>buildings</strong> the two counts are almost identical? What does this tell you about feature size relative to the query geometry?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q3</span>
+        <p>What is the difference between <strong>Euclidean distance</strong> and <strong>network distance</strong>? Give an example where using Euclidean distance would significantly underestimate actual travel distance in this area.</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q4</span>
+        <p>Select <em>Contains</em> — the count is always 0. Explain why, and give an example of two layers in this map where <em>contains</em> <strong>would</strong> return matches. What does this tell you about predicate direction?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q5</span>
+        <p>The Coastline layer is a <strong>line</strong>, not an area. Why is "which buildings are <em>within</em> the coastline?" a question you cannot answer as posed, and what would you have to build first to make it valid? Which of the four predicates above still mean something against a line geometry, and which are meaningless?</p>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      ENCN205 Applied Data Analysis — GIS Component<br>
+      University of Canterbury | Data: LINZ, Stats NZ
+    </div>
+  </div>
+</div>
+
+<!-- Data files -->
+<script src="data/study_area.js"></script>
+<script src="data/coastline.js"></script>
+<script src="data/roads.js"></script>
+<script src="data/buildings.js"></script>
+<script src="data/marae.js"></script>
+
+<script>
+// ── Map Setup ────────────────────────────────────────────────────────────────
+var map = L.map('map', { preferCanvas: true });
+
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors', maxZoom: 19,
+  className: 'basemap-tiles'
+}).addTo(map);
+
+map.fitBounds(studyArea.bounds);
+
+// ── Distance helpers ─────────────────────────────────────────────────────────
+// Every distance here is measured FROM a marae, so each marae gets its own
+// local equirectangular frame centred on itself. Over a 2 km radius that is
+// accurate to a few centimetres — no haversine call needed in the inner loop.
+// The scale factor is the mean-earth-radius sphere (R = 6371 km) that haversine
+// uses, so these distances match what GeoPandas/geopy report to sub-metre.
+var M_PER_DEG_LAT = 6371000 * Math.PI / 180;   // 111194.9 m
+
+var maraePts = maraeData.features.map(function(f) {
+  var c = f.geometry.coordinates;
+  return { lng: c[0], lat: c[1], mPerDegLng: M_PER_DEG_LAT * Math.cos(c[1] * Math.PI / 180) };
+});
+
+// Squared distance from the origin to segment ab, in metres
+function distSqToSegment(ax, ay, bx, by) {
+  var dx = bx - ax, dy = by - ay;
+  var len2 = dx*dx + dy*dy;
+  var t = len2 > 0 ? -(ax*dx + ay*dy) / len2 : 0;
+  if (t < 0) t = 0; else if (t > 1) t = 1;
+  var cx = ax + t*dx, cy = ay + t*dy;
+  return cx*cx + cy*cy;
+}
+
+// Rings of a GeoJSON feature, still in lng/lat
+function geomRings(geom) {
+  if (geom.type === 'Polygon') return geom.coordinates;
+  if (geom.type === 'MultiPolygon') {
+    var out = [];
+    geom.coordinates.forEach(function(p) { out = out.concat(p); });
+    return out;
+  }
+  if (geom.type === 'LineString') return [geom.coordinates];
+  if (geom.type === 'MultiLineString') return geom.coordinates;
+  return [];
+}
+
+// Ray-casting point-in-polygon, with the test point at the frame origin
+function originInRings(rings, mlng, mlat, mPerDegLng) {
+  var inside = false;
+  for (var r = 0; r < rings.length; r++) {
+    var ring = rings[r];
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      var xi = (ring[i][0]-mlng)*mPerDegLng, yi = (ring[i][1]-mlat)*M_PER_DEG_LAT;
+      var xj = (ring[j][0]-mlng)*mPerDegLng, yj = (ring[j][1]-mlat)*M_PER_DEG_LAT;
+      if (((yi > 0) !== (yj > 0)) && (0 < (xj - xi) * (0 - yi) / (yj - yi) + xi)) inside = !inside;
+    }
+  }
+  return inside;
+}
+
+// ── Pre-computed distance profile ────────────────────────────────────────────
+// The marae are fixed, so a feature's distance to them never changes — only the
+// buffer radius does. Pre-computing these three numbers once turns every
+// predicate test into a single numeric comparison per feature:
+//
+//   minD = closest approach to ANY marae   -> intersects: minD <= r
+//                                          -> disjoint:   minD > r
+//   maxD = smallest, over all marae, of the farthest vertex from that marae
+//                                          -> within:     maxD <= r
+//   cenD = centroid distance to the nearest marae (the "near marae" count)
+//
+// maxD is taken per-marae and then minimised so that WITHIN asks "does the
+// whole feature fit inside SOME single buffer circle", which is what the union
+// means for any feature smaller than the gap between marae.
+function profile(geom, isArea) {
+  var rings = geomRings(geom);
+  if (!rings.length || !rings[0].length) return null;
+
+  var minD2 = Infinity, bestMax2 = Infinity, bestCen2 = Infinity;
+
+  for (var m = 0; m < maraePts.length; m++) {
+    var mlng = maraePts[m].lng, mlat = maraePts[m].lat, mpl = maraePts[m].mPerDegLng;
+    var maxD2 = 0;
+    var cx = 0, cy = 0, n0 = 0;
+
+    for (var r = 0; r < rings.length; r++) {
+      var ring = rings[r];
+      var px = 0, py = 0;
+      for (var i = 0; i < ring.length; i++) {
+        var x = (ring[i][0] - mlng) * mpl;
+        var y = (ring[i][1] - mlat) * M_PER_DEG_LAT;
+        var d2v = x*x + y*y;
+        if (d2v > maxD2) maxD2 = d2v;
+        if (d2v < minD2) minD2 = d2v;
+        if (i > 0) {
+          var ds = distSqToSegment(px, py, x, y);
+          if (ds < minD2) minD2 = ds;
+        }
+        if (r === 0) { cx += x; cy += y; n0++; }
+        px = x; py = y;
+      }
+    }
+    if (maxD2 < bestMax2) bestMax2 = maxD2;
+    if (n0) {
+      cx /= n0; cy /= n0;
+      var c2 = cx*cx + cy*cy;
+      if (c2 < bestCen2) bestCen2 = c2;
+    }
+    // a marae sitting inside a footprint means zero separation
+    if (isArea && minD2 > 0 && originInRings(rings, mlng, mlat, mpl)) minD2 = 0;
+  }
+
+  return { minD: Math.sqrt(minD2), maxD: Math.sqrt(bestMax2), cenD: Math.sqrt(bestCen2) };
+}
+
+var buildingProfiles = buildingsData.features.map(function(f) { return profile(f.geometry, true); });
+var roadProfiles = roadsData.features.map(function(f) { return profile(f.geometry, false); });
+
+// ── Layers ───────────────────────────────────────────────────────────────────
+var coastlineLayer = L.geoJSON(coastlineData, {
+  style: { color: '#27ae60', weight: 2 }
+}).addTo(map);
+
+// Features are handed to onEachFeature in source order, so a running counter
+// gives each layer its index into the pre-computed profiles. (indexOf() here
+// would be O(n^2) — 1.7 billion comparisons for the building layer.)
+var ROAD_BASE = { color: '#7f8c8d', weight: 1.5, opacity: 0.8 };
+var roadIndex = new WeakMap();
+var roadCounter = 0;
+var roadsLayer = L.geoJSON(roadsData, {
+  renderer: L.canvas(),
+  style: ROAD_BASE,
+  onEachFeature: function(f, layer) {
+    roadIndex.set(layer, roadCounter++);
+    layer.bindPopup('<b>Road:</b> ' + (f.properties.name || 'Unnamed'));
+  }
+}).addTo(map);
+
+var maraeIcon = L.divIcon({
+  html: '<div style="background:#e91e63;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>',
+  className: '', iconSize: [14, 14], iconAnchor: [7, 7]
+});
+
+var maraeLayer = L.geoJSON(maraeData, {
+  pointToLayer: function(f, latlng) { return L.marker(latlng, {icon: maraeIcon}); },
+  onEachFeature: function(f, layer) {
+    layer.bindPopup('<b>Marae:</b> ' + (f.properties.Name || f.properties.name || 'Marae'));
+  }
+}).addTo(map);
+
+// All 41k buildings — the counts in the stats bar are real totals, not a sample
+var BUILDING_BASE = { color: '#e67e22', weight: 1, fillColor: '#e67e22', fillOpacity: 0.8 };
+var buildingIndex = new WeakMap();
+var buildingCounter = 0;
+var buildingsLayer = L.geoJSON(buildingsData, {
+  renderer: L.canvas(),
+  style: BUILDING_BASE,
+  onEachFeature: function(f, layer) { buildingIndex.set(layer, buildingCounter++); }
+}).addTo(map);
+
+var bufferLayer = null;
+
+// ── Buffer Distances ─────────────────────────────────────────────────────────
+var bufferDistances = [0, 200, 500, 1000, 2000];
+
+// ── State ────────────────────────────────────────────────────────────────────
+var currentBufferDist = 0;
+var currentPredicate = 'none';
+
+function updateBufferLayer() {
+  if (bufferLayer) { map.removeLayer(bufferLayer); bufferLayer = null; }
+  if (currentBufferDist === 0) return;
+
+  bufferLayer = L.layerGroup();
+  maraeData.features.forEach(function(f) {
+    var c = f.geometry.coordinates;
+    L.circle([c[1], c[0]], {
+      radius: currentBufferDist,
+      color: '#e91e63', weight: 2, fillColor: '#e91e63', fillOpacity: 0.12
+    }).addTo(bufferLayer);
+  });
+
+  if (document.getElementById('chkBuffer').checked) bufferLayer.addTo(map);
+}
+
+// ── Predicate evaluation ─────────────────────────────────────────────────────
+function matches(prof, pred, r) {
+  if (!prof) return false;
+  if (pred === 'intersects') return prof.minD <= r;
+  if (pred === 'within')     return prof.maxD <= r;
+  if (pred === 'disjoint')   return prof.minD > r;
+  // A building or road can never enclose a 200 m-2 km buffer circle.
+  if (pred === 'contains')   return false;
+  return false;
+}
+
+function updateStyles() {
+  var pred = currentPredicate;
+  var r = currentBufferDist;
+  var active = (pred !== 'none' && r > 0);
+  var bufferCount = 0, buildingMatches = 0, roadMatches = 0;
+
+  buildingsLayer.eachLayer(function(layer) {
+    var idx = buildingIndex.get(layer);
+    if (idx === undefined) return;
+    var prof = buildingProfiles[idx];
+    var inBuffer = r > 0 && prof && prof.cenD <= r;
+    if (inBuffer) bufferCount++;
+
+    var style;
+    if (active) {
+      var hit = matches(prof, pred, r);
+      if (hit) buildingMatches++;
+      style = hit
+        ? { color: '#e74c3c', fillColor: '#e74c3c', fillOpacity: 0.85 }
+        : { color: '#95a5a6', fillColor: '#95a5a6', fillOpacity: 0.2 };
+    } else if (r > 0) {
+      style = inBuffer
+        ? { color: '#f39c12', fillColor: '#f39c12', fillOpacity: 0.8 }
+        : { color: '#95a5a6', fillColor: '#95a5a6', fillOpacity: 0.25 };
+    } else {
+      style = BUILDING_BASE;
+    }
+    layer.setStyle(style);
+  });
+
+  roadsLayer.eachLayer(function(layer) {
+    var idx = roadIndex.get(layer);
+    if (idx === undefined) return;
+    if (!active) { layer.setStyle(ROAD_BASE); return; }
+    var hit = matches(roadProfiles[idx], pred, r);
+    if (hit) roadMatches++;
+    layer.setStyle(hit
+      ? { color: '#c0392b', weight: 3, opacity: 1 }
+      : { color: '#bdc3c7', weight: 1, opacity: 0.5 });
+  });
+
+  document.getElementById('statBuffer').textContent = r > 0 ? bufferCount.toLocaleString() : '—';
+  document.getElementById('statPredicate').textContent = active ? buildingMatches.toLocaleString() : '—';
+  document.getElementById('statRoads').textContent = active ? roadMatches.toLocaleString() : '—';
+}
+
+// Debounce heavy operations
+var updateTimer = null;
+function scheduleUpdate() {
+  clearTimeout(updateTimer);
+  updateTimer = setTimeout(updateStyles, 120);
+}
+
+// ── Predicate descriptions ───────────────────────────────────────────────────
+var predicateDescs = {
+  none: 'Select a spatial predicate above to highlight matching features.',
+  intersects: 'INTERSECTS: any part of the feature touches the buffer — its closest approach to a marae is within the buffer distance. Always at least as many matches as WITHIN.',
+  within: 'WITHIN: the whole feature lies inside the buffer — its farthest point is still within the buffer distance. Roads that cross the buffer edge match INTERSECTS but not WITHIN.',
+  contains: 'CONTAINS: the feature would have to completely enclose the buffer circle. No building or road can enclose a 200m–2km circle, so the count is 0 — note how predicate direction matters.',
+  disjoint: 'DISJOINT: no part of the feature touches the buffer — the exact complement of INTERSECTS.'
+};
+
+function refreshPredicateDesc() {
+  var el = document.getElementById('predicateDesc');
+  el.textContent = predicateDescs[currentPredicate] || '';
+  if (currentPredicate !== 'none' && currentBufferDist === 0) {
+    el.textContent += ' — Set a buffer distance above to activate.';
+  }
+}
+
+// ── Event Listeners ──────────────────────────────────────────────────────────
+document.getElementById('bufferSlider').addEventListener('input', function() {
+  currentBufferDist = bufferDistances[parseInt(this.value)];
+  document.getElementById('bufferValue').textContent =
+    currentBufferDist === 0 ? 'No buffer' : currentBufferDist + 'm around marae';
+  updateBufferLayer();
+  refreshPredicateDesc();
+  scheduleUpdate();
+});
+
+document.getElementById('predicateSelect').addEventListener('change', function() {
+  currentPredicate = this.value;
+  refreshPredicateDesc();
+  scheduleUpdate();
+});
+
+// Layer toggles
+function bindToggle(id, getLayer) {
+  document.getElementById(id).addEventListener('change', function() {
+    var layer = getLayer();
+    if (!layer) return;              // nothing to show yet; box still reflects intent
+    if (this.checked) map.addLayer(layer); else map.removeLayer(layer);
+  });
+}
+bindToggle('chkCoastline', function() { return coastlineLayer; });
+bindToggle('chkRoads',     function() { return roadsLayer; });
+bindToggle('chkBuildings', function() { return buildingsLayer; });
+bindToggle('chkMarae',     function() { return maraeLayer; });
+bindToggle('chkBuffer',    function() { return bufferLayer; });
+
+// ── Ready ────────────────────────────────────────────────────────────────────
+var loadingEl = document.getElementById('loading');
+if (loadingEl) loadingEl.parentNode.removeChild(loadingEl);
+</script>
+</body>
+</html>

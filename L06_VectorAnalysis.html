@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L06 Demo: Vector Analysis — Buller River Catchment Workflow</title>
+<link rel="stylesheet" href="lib/leaflet/leaflet.css" />
+<script src="lib/leaflet/leaflet.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; height: 100vh; display: flex; flex-direction: column; background: #f5f5f5; }
+  .header { background: linear-gradient(135deg, #1a5276, #2980b9); color: white; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 1.2em; font-weight: 600; }
+  .header .subtitle { font-size: 0.85em; opacity: 0.9; }
+  .header .badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-size: 0.8em; }
+  .main { display: flex; flex: 1; overflow: hidden; }
+  #map { flex: 1; min-width: 0; }
+  .panel { width: 390px; background: white; overflow-y: auto; border-left: 2px solid #e0e0e0; display: flex; flex-direction: column; }
+  .panel-header { background: #2c3e50; color: white; padding: 16px; text-align: center; }
+  .panel-header h2 { font-size: 1.1em; margin-bottom: 4px; }
+  .panel-header p { font-size: 0.8em; opacity: 0.8; }
+  .control-section { padding: 16px; border-bottom: 1px solid #eee; }
+  .control-section h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .slider-container { padding: 8px 0; }
+  .slider-container input[type=range] { width: 100%; margin: 8px 0; }
+  .slider-label { display: flex; justify-content: space-between; font-size: 0.85em; color: #555; }
+  .question-section { padding: 16px; flex: 1; }
+  .question-section h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .question { background: #f8f9fa; border-left: 4px solid #2980b9; padding: 12px; margin-bottom: 12px; border-radius: 0 6px 6px 0; }
+  .question .q-number { font-weight: 700; color: #2980b9; font-size: 0.85em; }
+  .question p { font-size: 0.88em; color: #333; margin-top: 4px; line-height: 1.5; }
+  .info-box { background: #eaf2f8; border: 1px solid #2980b9; border-radius: 6px; padding: 12px; margin: 12px 16px; font-size: 0.85em; line-height: 1.5; }
+  .info-box strong { color: #1a5276; }
+  .footer-note { padding: 12px 16px; background: #f0f0f0; font-size: 0.75em; color: #888; text-align: center; border-top: 1px solid #ddd; }
+
+  .op-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+  .op-btn { flex: 1; min-width: 70px; padding: 8px 6px; border: 2px solid #2980b9; background: white; color: #2980b9;
+            border-radius: 6px; font-size: 0.82em; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; }
+  .op-btn:hover { background: #eaf2f8; }
+  .op-btn.active { background: #2980b9; color: white; }
+  .op-desc { font-size: 0.8em; color: #555; margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px; line-height: 1.5; }
+
+  .stats-bar { display: flex; gap: 6px; padding: 8px 16px; background: #f8f9fa; border-bottom: 1px solid #eee; flex-wrap: wrap; }
+  .stat { background: white; border: 1px solid #ddd; border-radius: 4px; padding: 4px 8px; font-size: 0.75em; }
+  .stat .val { font-weight: 700; color: #2980b9; }
+
+  .buffer-value { font-size: 1.1em; font-weight: bold; color: #e67e22; text-align: center; margin: 4px 0; }
+
+  .legend { background: white; padding: 8px 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.75em; line-height: 1.6; }
+  .legend-title { font-weight: 700; margin-bottom: 4px; color: #2c3e50; }
+  .legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+  .legend-swatch { width: 24px; height: 10px; border-radius: 2px; display: inline-block; }
+  .legend-line { width: 24px; height: 3px; display: inline-block; border-radius: 2px; }
+  .legend-bar { width: 100px; height: 12px; border-radius: 2px; display: inline-block; }
+
+  .reset-btn { padding: 4px 10px; border: 1px solid #aaa; background: #f0f0f0; border-radius: 4px; font-size: 0.78em; cursor: pointer; margin-top: 6px; }
+  .reset-btn:hover { background: #ddd; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>ENCN205 — Lecture 06: Vector Analysis</h1>
+    <div class="subtitle">Interactive Demo: Analysis Workflow — Buller River Catchment</div>
+  </div>
+  <div class="badge">~10 min activity</div>
+</div>
+
+<div class="main">
+  <div id="map"></div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Vector Analysis Workflow</h2>
+      <p>Apply buffer, clip, dissolve, and spatial join to a real river network</p>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat">Streams: <span class="val" id="statStreams">3,241</span></div>
+      <div class="stat">Catchments: <span class="val" id="statCatchments">3,241</span></div>
+      <div class="stat">Visible: <span class="val" id="statVisible">3,241</span></div>
+      <div class="stat">Result: <span class="val" id="statResult">&mdash;</span></div>
+    </div>
+
+    <div class="control-section">
+      <h3>Analysis Operation</h3>
+      <div class="op-buttons">
+        <button class="op-btn" id="btnBuffer" onclick="setOp('buffer')">Buffer</button>
+        <button class="op-btn" id="btnClip" onclick="setOp('clip')">Clip</button>
+        <button class="op-btn" id="btnDissolve" onclick="setOp('dissolve')">Dissolve</button>
+        <button class="op-btn" id="btnSjoin" onclick="setOp('sjoin')">Spatial Join</button>
+      </div>
+      <div class="op-desc" id="opDesc">Select an operation to see it applied to the Buller River stream network and sub-catchments.</div>
+    </div>
+
+    <div class="control-section" id="bufferSection" style="display:none;">
+      <h3>Riparian Buffer Distance</h3>
+      <div class="buffer-value" id="bufferValue">100 m</div>
+      <div class="slider-container">
+        <input type="range" id="bufferSlider" min="0" max="4" value="1" step="1">
+        <div class="slider-label"><span>50m</span><span>100m</span><span>200m</span><span>500m</span><span>1 km</span></div>
+      </div>
+      <div style="font-size:0.78em;color:#888;margin-top:4px;">Riparian buffer zones protect waterways from adjacent land use.</div>
+      <div style="font-size:0.78em;color:#888;margin-top:4px;">The orange stroke on the map is schematic (screen pixels, not ground metres).</div>
+      <div id="bufferWarning" style="display:none;margin-top:8px;padding:8px;background:#fdecea;border:1px solid #e74c3c;border-radius:4px;font-size:0.8em;color:#922b21;font-weight:600;">This exceeds the entire catchment (&asymp;6,500 km&sup2;) &mdash; why is that impossible? (Hint: overlapping buffers are never merged in this naive calculation.)</div>
+    </div>
+
+    <div class="control-section" id="clipSection" style="display:none;">
+      <div style="font-size:0.85em;color:#333;">Click an <strong>order-3 catchment</strong> on the map to use as a clip boundary. Only streams within it will be shown.</div>
+      <div style="font-size:0.78em;color:#922b21;margin-top:6px;">Demo simplification: whole streams are selected by catchment attribute — a true clip would cut each stream exactly at the boundary.</div>
+      <button class="reset-btn" onclick="resetClip()">Reset clip</button>
+    </div>
+
+    <div class="control-section" id="dissolveSection" style="display:none;">
+      <div style="font-size:0.85em;color:#333;">Watch order-2 sub-catchments (3,241) merge into order-3 catchments (1,458). Each colour is one order-3 group — dissolve removes the white boundaries <em>inside</em> a colour, never between colours.</div>
+      <div style="font-size:0.78em;color:#922b21;margin-top:6px;" id="dissolveNote"></div>
+      <div style="font-size:0.78em;color:#888;margin-top:4px;">Zoom in to see individual boundaries — at full catchment extent the polygons are only a few pixels across.</div>
+      <div style="margin-top:8px;">
+        <button class="op-btn" id="btnDiss2" onclick="setDissolveState(2)" style="min-width:40px;">Before: Order 2 (3,241)</button>
+        <button class="op-btn" id="btnDiss3" onclick="setDissolveState(3)" style="min-width:40px;">After: Order 3 (1,458)</button>
+      </div>
+    </div>
+
+    <div class="control-section" id="sjoinSection" style="display:none;">
+      <div style="font-size:0.85em;color:#333;">Each order-3 catchment is coloured by how many order-2 stream reaches it contains. This <strong>transfers a count attribute</strong> from the stream layer to the catchment layer via spatial join.</div>
+    </div>
+
+    <div class="info-box">
+      <strong>Vector analysis</strong> transforms raw layers into answers. <strong>Buffer</strong> creates proximity zones around features. <strong>Clip</strong> trims features to a boundary. <strong>Dissolve</strong> merges features by a shared attribute. <strong>Spatial join</strong> transfers attributes between layers based on their spatial relationship.
+    </div>
+
+    <div class="question-section">
+      <h3>Guided Questions</h3>
+
+      <div class="question">
+        <span class="q-number">Q1</span>
+        <p>Set the <strong>riparian buffer</strong> to 100m, then 500m. How does the estimated buffer area change? Is the relationship linear with buffer distance? Why or why not?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q2</span>
+        <p>Use <strong>Clip</strong> to select a catchment. What is the difference between clipping streams to a catchment boundary vs. doing a spatial join? When would you use each?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q3</span>
+        <p>Switch to <strong>Dissolve</strong> and toggle between Order 2 and Order 3. What happens to the sub-catchment boundaries? What aggregate statistics would be useful to compute during the dissolve (e.g., total stream length per merged catchment)?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q4</span>
+        <p>In <strong>Spatial Join</strong> mode, some order-3 catchments contain many order-2 streams while others contain few. What might explain this variation? What is the "one-to-many" problem in spatial joins?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q5</span>
+        <p>Design a GIS workflow to answer: <em>"What is the total area of riparian buffer zones within the 10 largest sub-catchments?"</em> List each step and the operation used.</p>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      ENCN205 Applied Data Analysis &mdash; GIS Component<br>
+      University of Canterbury | Data: NIWA Buller River Network (2020)
+    </div>
+  </div>
+</div>
+
+<script src="data/buller_streams2.js"></script>
+<script src="data/buller_streams3.js"></script>
+<script src="data/buller_catchments2.js"></script>
+<script src="data/buller_catchments3.js"></script>
+<script src="data/buller_meta.js"></script>
+
+<script>
+var map = L.map('map', { zoomControl: true, attributionControl: true }).setView(bullerMeta.center, 9);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors', maxZoom: 16
+}).addTo(map);
+map.fitBounds(bullerMeta.bounds, { padding: [20, 20] });
+
+var currentOp = null;
+var streamLayer = null;
+var catchLayer = null;
+var bufferLayer = null;
+var sjoinLayer = null;
+var clipHighlight = null;
+var dissolveState = 2;
+
+var bufferDists = [50, 100, 200, 500, 1000];
+
+// ── Dissolve grouping ────────────────────────────────────────────────────────
+// Order-2 catchments carry parent3; the order-3 catchment with that cat_id is
+// what they dissolve into. Colouring both layers by that shared parent is what
+// makes the merge readable: the coloured regions stay put and only the internal
+// boundaries disappear.
+var DISSOLVE_PALETTE = ['#8e44ad','#2980b9','#16a085','#d35400','#c0392b',
+                        '#2c3e50','#e67e22','#27ae60'];
+var childCount = {};
+bullerCatchments2.features.forEach(function(f) {
+  var p = f.properties.parent3;
+  childCount[p] = (childCount[p] || 0) + 1;
+});
+var parentColor = {}, _pi = 0;
+Object.keys(childCount).sort().forEach(function(p) {
+  parentColor[p] = DISSOLVE_PALETTE[_pi++ % DISSOLVE_PALETTE.length];
+});
+// Groups of one child dissolve into themselves — nothing moves, so they are
+// drawn grey to keep the eye on the boundaries that actually vanish.
+var mergingGroups = 0, singletonGroups = 0;
+Object.keys(childCount).forEach(function(p) {
+  if (childCount[p] > 1) mergingGroups++; else singletonGroups++;
+});
+
+function groupStyle(id) {
+  var merges = childCount[id] > 1;
+  return {
+    color: '#ffffff', weight: 1, opacity: 0.9,   // identical in both states, so
+    fillColor: merges ? parentColor[id] : '#b0b7bd',  // only geometry differs
+    fillOpacity: merges ? 0.6 : 0.25
+  };
+}
+
+// ── Spatial join classification ──────────────────────────────────────────────
+// n_streams2 is heavily skewed (47% of catchments hold exactly 1 reach, max 21),
+// so a continuous ramp collapses almost everything into one pale tone. Classed
+// breaks keep the low end separable.
+var SJOIN_CLASSES = [
+  { label: '0 (none)', color: '#f0f0f0' },
+  { label: '1',        color: '#c6dbef' },
+  { label: '2 – 3',    color: '#6baed6' },
+  { label: '4 – 6',    color: '#2171b5' },
+  { label: '7 +',      color: '#08306b' }
+];
+function sjoinClass(n) {
+  if (!n) return 0;
+  if (n === 1) return 1;
+  if (n <= 3) return 2;
+  if (n <= 6) return 3;
+  return 4;
+}
+
+// ── Legend ───────────────────────────────────────────────────────────────────
+var legendControl = L.control({ position: 'bottomleft' });
+legendControl.onAdd = function() { var d = L.DomUtil.create('div','legend'); d.id='legendDiv'; return d; };
+legendControl.addTo(map);
+
+function updateLegend() {
+  var div = document.getElementById('legendDiv');
+  if (!currentOp) {
+    div.innerHTML = '<div class="legend-title">Buller River</div>' +
+      '<div class="legend-item"><span class="legend-line" style="background:#1a5276"></span> Stream (Order 2+)</div>' +
+      '<div class="legend-item"><span class="legend-swatch" style="background:rgba(26,82,118,0.15);border:1px solid #555"></span> Sub-catchment</div>';
+  } else if (currentOp === 'buffer') {
+    div.innerHTML = '<div class="legend-title">Riparian Buffer</div>' +
+      '<div class="legend-item"><span class="legend-line" style="background:#e67e22;height:6px"></span> Stream + buffer zone</div>' +
+      '<div class="legend-item"><span class="legend-swatch" style="background:rgba(243,156,18,0.25);border:1px solid #e67e22"></span> Approx. buffer area</div>';
+  } else if (currentOp === 'clip') {
+    div.innerHTML = '<div class="legend-title">Clip</div>' +
+      '<div class="legend-item"><span class="legend-line" style="background:#e74c3c"></span> Clipped streams (inside)</div>' +
+      '<div class="legend-item"><span class="legend-line" style="background:#bdc3c7"></span> Excluded streams</div>' +
+      '<div class="legend-item"><span class="legend-swatch" style="background:rgba(231,76,60,0.3);border:1px solid #e74c3c"></span> Clip region</div>';
+  } else if (currentOp === 'dissolve') {
+    div.innerHTML = '<div class="legend-title">Dissolve — ' +
+        (dissolveState === 2 ? 'BEFORE: order 2 (3,241)' : 'AFTER: order 3 (1,458)') + '</div>' +
+      '<div class="legend-item"><span class="legend-swatch" style="background:#8e44ad"></span> Colour = order-3 group it merges into</div>' +
+      '<div class="legend-item"><span class="legend-swatch" style="background:#b0b7bd"></span> Single-part group (nothing to merge)</div>' +
+      '<div class="legend-item"><span class="legend-line" style="background:#fff;border:1px solid #999"></span> Polygon boundary</div>' +
+      '<div style="margin-top:4px;color:#666;">' +
+        (dissolveState === 2
+          ? 'Watch the white boundaries <b>inside</b> each colour disappear.'
+          : 'Internal boundaries gone — one polygon per colour.') +
+      '</div>';
+  } else if (currentOp === 'sjoin') {
+    var items = '';
+    for (var si = SJOIN_CLASSES.length - 1; si >= 0; si--) {
+      items += '<div class="legend-item"><span class="legend-swatch" style="background:' +
+               SJOIN_CLASSES[si].color + ';border:1px solid #999"></span> ' +
+               SJOIN_CLASSES[si].label + '</div>';
+    }
+    div.innerHTML = '<div class="legend-title">Order-2 reaches per catchment</div>' + items +
+      '<div class="legend-item"><span class="legend-line" style="background:#c0392b"></span> Order-2 streams (counted)</div>';
+  }
+}
+
+// ── Base layers ─────────────────────────────────────────────────────────────
+function buildBaseStreams() {
+  if (streamLayer) map.removeLayer(streamLayer);
+  streamLayer = L.geoJSON(bullerStreams2, {
+    style: { color: '#1a5276', weight: 1.5, opacity: 0.6 }
+  }).addTo(map);
+}
+
+function buildBaseCatchments() {
+  if (catchLayer) map.removeLayer(catchLayer);
+  catchLayer = L.geoJSON(bullerCatchments2, {
+    style: { color: '#555', weight: 0.4, fillColor: '#1a5276', fillOpacity: 0.05, opacity: 0.3 }
+  }).addTo(map);
+}
+
+function clearAll() {
+  if (streamLayer) { map.removeLayer(streamLayer); streamLayer = null; }
+  if (catchLayer) { map.removeLayer(catchLayer); catchLayer = null; }
+  if (bufferLayer) { map.removeLayer(bufferLayer); bufferLayer = null; }
+  if (sjoinLayer) { map.removeLayer(sjoinLayer); sjoinLayer = null; }
+  if (clipHighlight) { map.removeLayer(clipHighlight); clipHighlight = null; }
+}
+
+// ── Operations ──────────────────────────────────────────────────────────────
+var opDescs = {
+  buffer: 'BUFFER: Creates a riparian management zone around every stream reach. The orange zone shows the buffer distance from each stream centreline. Area is estimated from total stream length.',
+  clip: 'CLIP: Click an order-3 catchment boundary to use as a clip region. Only order-2 streams inside the selected catchment are kept; streams outside are removed. (Demo simplification: streams are selected whole by attribute, not cut at the boundary.)',
+  dissolve: 'DISSOLVE: Merges smaller sub-catchments into larger ones by shared parent attribute. Toggle between order-2 (3,241 polygons) and order-3 (1,458 polygons) to see boundaries disappear.',
+  sjoin: 'SPATIAL JOIN: Transfers a count attribute from the stream layer to the catchment layer. Each order-3 catchment is coloured by how many order-2 stream reaches fall within it.'
+};
+
+function setOp(op) {
+  currentOp = op;
+  ['buffer','clip','dissolve','sjoin'].forEach(function(o) {
+    document.getElementById('btn' + o.charAt(0).toUpperCase() + o.slice(1)).classList.toggle('active', o === op);
+  });
+  document.getElementById('opDesc').textContent = opDescs[op] || '';
+  document.getElementById('bufferSection').style.display = op === 'buffer' ? 'block' : 'none';
+  document.getElementById('clipSection').style.display = op === 'clip' ? 'block' : 'none';
+  document.getElementById('dissolveSection').style.display = op === 'dissolve' ? 'block' : 'none';
+  document.getElementById('sjoinSection').style.display = op === 'sjoin' ? 'block' : 'none';
+  applyOp();
+}
+
+function applyOp() {
+  clearAll();
+  document.getElementById('statResult').textContent = '—';
+
+  if (currentOp === 'buffer') applyBuffer();
+  else if (currentOp === 'clip') applyClip();
+  else if (currentOp === 'dissolve') applyDissolve();
+  else if (currentOp === 'sjoin') applySjoin();
+  else { buildBaseStreams(); buildBaseCatchments(); }
+
+  updateStats();
+  updateLegend();
+}
+
+// ── BUFFER ──────────────────────────────────────────────────────────────────
+function applyBuffer() {
+  var idx = parseInt(document.getElementById('bufferSlider').value);
+  var dist = bufferDists[idx];
+  document.getElementById('bufferValue').textContent = dist >= 1000 ? (dist/1000) + ' km' : dist + ' m';
+
+  var weight = Math.max(3, Math.min(20, dist / 30));
+
+  streamLayer = L.geoJSON(bullerStreams2, {
+    style: { color: '#e67e22', weight: weight, opacity: 0.35 }
+  }).addTo(map);
+
+  // Overlay thin stream centrelines
+  bufferLayer = L.geoJSON(bullerStreams2, {
+    style: { color: '#c0392b', weight: 1, opacity: 0.5 }
+  }).addTo(map);
+
+  // Estimate total stream length and buffer area
+  var totalLen = 0;
+  bullerStreams2.features.forEach(function(f) {
+    var coords = f.geometry.type === 'MultiLineString' ? f.geometry.coordinates : [f.geometry.coordinates];
+    coords.forEach(function(line) {
+      for (var i = 1; i < line.length; i++) {
+        var dx = (line[i][0] - line[i-1][0]) * 85000;
+        var dy = (line[i][1] - line[i-1][1]) * 111000;
+        totalLen += Math.sqrt(dx*dx + dy*dy);
+      }
+    });
+  });
+
+  var areaKm2 = (totalLen * dist * 2 / 1e6).toFixed(0);
+  document.getElementById('statResult').textContent = '~' + areaKm2 + ' km² buffer';
+  document.getElementById('statStreams').textContent = '3,241';
+  document.getElementById('statVisible').textContent = '3,241';
+
+  // Naive (non-unioned) buffer area can exceed the whole catchment — flag the absurdity
+  document.getElementById('bufferWarning').style.display =
+    parseFloat(areaKm2) > 6500 ? 'block' : 'none';
+}
+
+// ── CLIP ────────────────────────────────────────────────────────────────────
+var clipParentId = null;
+
+// Reads the module-level clipParentId rather than taking it as an argument.
+// (It used to be called as applyClip(null) from applyOp(), which wiped the
+// catchment the user had just clicked before the filter below ever ran.)
+function applyClip() {
+  // Show all catchment3 boundaries as clickable clip regions
+  catchLayer = L.geoJSON(bullerCatchments3, {
+    style: function(f) {
+      var selected = f.properties.cat_id === clipParentId;
+      return {
+        color: selected ? '#e74c3c' : '#888',
+        weight: selected ? 3 : 0.8,
+        fillColor: selected ? '#e74c3c' : '#aaa',
+        fillOpacity: selected ? 0.2 : 0.03,
+        opacity: selected ? 1 : 0.4
+      };
+    },
+    onEachFeature: function(f, layer) {
+      layer.on('click', function() {
+        if (currentOp === 'clip') {
+          clipParentId = f.properties.cat_id;
+          applyOp();
+        }
+      });
+    }
+  }).addTo(map);
+
+  if (clipParentId === null) {
+    // Show all streams dimmed
+    streamLayer = L.geoJSON(bullerStreams2, {
+      style: { color: '#bdc3c7', weight: 1, opacity: 0.4 }
+    }).addTo(map);
+    document.getElementById('statResult').textContent = 'Click a catchment';
+    document.getElementById('statVisible').textContent = '3,241';
+    return;
+  }
+
+  // Filter streams by parent3 matching clipParentId
+  var inside = { type: 'FeatureCollection', features: [] };
+  var outside = { type: 'FeatureCollection', features: [] };
+  bullerStreams2.features.forEach(function(f) {
+    if (f.properties.parent3 === clipParentId) inside.features.push(f);
+    else outside.features.push(f);
+  });
+
+  streamLayer = L.geoJSON(outside, {
+    style: { color: '#bdc3c7', weight: 0.8, opacity: 0.25 }
+  }).addTo(map);
+
+  bufferLayer = L.geoJSON(inside, {
+    style: { color: '#e74c3c', weight: 2.5, opacity: 0.9 },
+    onEachFeature: function(f, layer) {
+      layer.bindPopup('Stream ID: ' + f.properties.cat_id + '<br>Parent catchment: ' + f.properties.parent3);
+    }
+  }).addTo(map);
+
+  document.getElementById('statResult').textContent = inside.features.length + ' streams clipped';
+  document.getElementById('statVisible').textContent = inside.features.length.toLocaleString();
+}
+
+function resetClip() {
+  clipParentId = null;
+  if (currentOp === 'clip') applyOp();
+}
+
+// ── DISSOLVE ────────────────────────────────────────────────────────────────
+function applyDissolve() {
+  dissolveState = dissolveState || 2;
+  document.getElementById('btnDiss2').classList.toggle('active', dissolveState === 2);
+  document.getElementById('btnDiss3').classList.toggle('active', dissolveState === 3);
+
+  var catchData = dissolveState === 2 ? bullerCatchments2 : bullerCatchments3;
+  var count = catchData.features.length;
+
+  catchLayer = L.geoJSON(catchData, {
+    style: function(f) {
+      // before: colour by the parent each polygon will merge into
+      // after:  colour by the polygon's own id, which IS that parent
+      return groupStyle(dissolveState === 2 ? f.properties.parent3 : f.properties.cat_id);
+    },
+    onEachFeature: function(f, layer) {
+      var id = dissolveState === 2 ? f.properties.parent3 : f.properties.cat_id;
+      layer.bindPopup('<b>Order-3 group:</b> ' + id + '<br><b>Order-2 parts:</b> ' +
+                      (childCount[id] || 0));
+    }
+  }).addTo(map);
+
+  streamLayer = L.geoJSON(bullerStreams2, {
+    style: { color: '#1a5276', weight: 0.8, opacity: 0.3 }
+  }).addTo(map);
+
+  document.getElementById('statCatchments').textContent = count.toLocaleString();
+  document.getElementById('statResult').textContent = count.toLocaleString() + ' polygons';
+  document.getElementById('statVisible').textContent = count.toLocaleString();
+
+  var note = document.getElementById('dissolveNote');
+  if (note) {
+    note.textContent = 'Only ' + mergingGroups.toLocaleString() + ' of the ' +
+      (mergingGroups + singletonGroups).toLocaleString() + ' groups actually merge — ' +
+      singletonGroups.toLocaleString() + ' order-3 catchments have a single order-2 part, ' +
+      'so their outline is identical before and after (shown grey).';
+  }
+}
+
+function setDissolveState(state) {
+  dissolveState = state;
+  if (currentOp === 'dissolve') applyOp();
+}
+
+// ── SPATIAL JOIN ────────────────────────────────────────────────────────────
+function applySjoin() {
+  var maxN = 0;
+  bullerCatchments3.features.forEach(function(f) {
+    if (f.properties.n_streams2 > maxN) maxN = f.properties.n_streams2;
+  });
+
+  sjoinLayer = L.geoJSON(bullerCatchments3, {
+    style: function(f) {
+      return {
+        color: '#ffffff',
+        weight: 0.5,
+        opacity: 0.6,
+        fillColor: SJOIN_CLASSES[sjoinClass(f.properties.n_streams2 || 0)].color,
+        fillOpacity: 0.85          // opaque enough that the basemap cannot wash it out
+      };
+    },
+    onEachFeature: function(f, layer) {
+      layer.bindPopup(
+        '<b>Catchment ' + f.properties.cat_id + '</b><br>' +
+        'Order-2 streams inside: <b>' + f.properties.n_streams2 + '</b>'
+      );
+    }
+  }).addTo(map);
+
+  // Draw the order-2 reaches — these are the features being counted, so showing
+  // them lets you check the join by eye. (This used to draw the order-3 network
+  // in white, which is not what the colours count.)
+  streamLayer = L.geoJSON(bullerStreams2, {
+    style: { color: '#c0392b', weight: 0.7, opacity: 0.55 }
+  }).addTo(map);
+
+  document.getElementById('statCatchments').textContent = '1,458';
+  document.getElementById('statResult').textContent = 'Max: ' + maxN + ' streams/catchment';
+  document.getElementById('statVisible').textContent = '1,458';
+}
+
+// ── Stats ───────────────────────────────────────────────────────────────────
+function updateStats() {
+  if (currentOp !== 'dissolve' && currentOp !== 'sjoin') {
+    document.getElementById('statStreams').textContent = '3,241';
+    document.getElementById('statCatchments').textContent = currentOp === 'clip' ? '1,458' : '3,241';
+  }
+}
+
+// ── Event listeners ─────────────────────────────────────────────────────────
+document.getElementById('bufferSlider').addEventListener('input', function() {
+  if (currentOp === 'buffer') applyOp();
+});
+
+// ── Initial state ───────────────────────────────────────────────────────────
+buildBaseStreams();
+buildBaseCatchments();
+updateStats();
+updateLegend();
+</script>
+</body>
+</html>

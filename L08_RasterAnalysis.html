@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L08 Demo: Raster Analysis — DEM Explorer</title>
+<link rel="stylesheet" href="lib/leaflet/leaflet.css" />
+<script src="lib/leaflet/leaflet.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; height: 100vh; display: flex; flex-direction: column; background: #f5f5f5; }
+  .header { background: linear-gradient(135deg, #1a5276, #2980b9); color: white; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 1.2em; font-weight: 600; }
+  .header .subtitle { font-size: 0.85em; opacity: 0.9; }
+  .header .badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-size: 0.8em; }
+  .main { display: flex; flex: 1; overflow: hidden; }
+  #map { flex: 1; min-width: 0; background: #2c3e50; }
+  .panel { width: 380px; background: white; overflow-y: auto; border-left: 2px solid #e0e0e0; display: flex; flex-direction: column; }
+  .panel-header { background: #2c3e50; color: white; padding: 16px; text-align: center; }
+  .panel-header h2 { font-size: 1.1em; margin-bottom: 4px; }
+  .panel-header p { font-size: 0.8em; opacity: 0.8; }
+  .control-section { padding: 16px; border-bottom: 1px solid #eee; }
+  .control-section h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .slider-container { padding: 8px 0; }
+  .slider-container input[type=range] { width: 100%; margin: 8px 0; }
+  .slider-label { display: flex; justify-content: space-between; font-size: 0.85em; color: #555; }
+  .question-section { padding: 16px; flex: 1; }
+  .question-section h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .question { background: #f8f9fa; border-left: 4px solid #2980b9; padding: 12px; margin-bottom: 12px; border-radius: 0 6px 6px 0; }
+  .question .q-number { font-weight: 700; color: #2980b9; font-size: 0.85em; }
+  .question p { font-size: 0.88em; color: #333; margin-top: 4px; line-height: 1.5; }
+  .info-box { background: #eaf2f8; border: 1px solid #2980b9; border-radius: 6px; padding: 12px; margin: 12px 16px; font-size: 0.85em; line-height: 1.5; }
+  .info-box strong { color: #1a5276; }
+  .footer-note { padding: 12px 16px; background: #f0f0f0; font-size: 0.75em; color: #888; text-align: center; border-top: 1px solid #ddd; }
+
+  .mode-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .mode-btn { padding: 6px 12px; border: 2px solid #2980b9; background: white; color: #2980b9; border-radius: 6px; font-size: 0.82em; cursor: pointer; font-weight: 600; transition: all 0.15s; }
+  .mode-btn.active { background: #2980b9; color: white; }
+  .mode-btn:hover:not(.active) { background: #d6eaf8; }
+
+  .sun-btns { display: flex; gap: 4px; margin-top: 8px; }
+  .sun-btn { padding: 4px 8px; border: 1px solid #aaa; background: #f0f0f0; border-radius: 4px; font-size: 0.78em; cursor: pointer; }
+  .sun-btn.active { background: #f39c12; color: white; border-color: #e67e22; }
+
+  .stats-panel { padding: 12px 16px; background: #f8f9fa; border-bottom: 1px solid #eee; }
+  .stats-panel h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-row { display: flex; justify-content: space-between; font-size: 0.85em; padding: 3px 0; border-bottom: 1px dotted #ddd; }
+  .stat-row span:last-child { font-weight: 700; color: #1a5276; }
+
+  .legend { background: white; padding: 8px 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.75em; line-height: 1.6; }
+  .legend-title { font-weight: 700; margin-bottom: 4px; color: #2c3e50; }
+  .legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+  .legend-swatch { width: 24px; height: 10px; border-radius: 2px; display: inline-block; }
+  .legend-bar { width: 120px; height: 12px; border-radius: 2px; display: inline-block; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>ENCN205 — Lecture 08: Raster Analysis</h1>
+    <div class="subtitle">Interactive Demo: DEM Explorer — Banks Peninsula (LINZ 8m DEM)</div>
+  </div>
+  <div class="badge">~10 min activity</div>
+</div>
+
+<div class="main">
+  <div id="map"></div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>DEM Explorer</h2>
+      <p>Elevation, hillshade, slope, combined &amp; flood analysis</p>
+    </div>
+
+    <div class="control-section">
+      <h3>View Mode</h3>
+      <div class="mode-btns">
+        <button class="mode-btn active" onclick="setMode('elevation')">Elevation</button>
+        <button class="mode-btn" onclick="setMode('hillshade')">Hillshade</button>
+        <button class="mode-btn" onclick="setMode('slope')">Slope</button>
+        <button class="mode-btn" onclick="setMode('combined')">Combined</button>
+        <button class="mode-btn" onclick="setMode('flood')" id="btnFlood" style="border-color:#2471a3;color:#2471a3;">Flood</button>
+      </div>
+      <div id="sunSection" style="display:none;">
+        <div style="font-size:0.82em;color:#555;margin-bottom:4px;">Sun direction:</div>
+        <div class="sun-btns">
+          <button class="sun-btn active" onclick="setSun('default')">NW 315&deg;</button>
+          <button class="sun-btn" onclick="setSun('east')">E 90&deg;</button>
+          <button class="sun-btn" onclick="setSun('south')">S 180&deg;</button>
+          <button class="sun-btn" onclick="setSun('ne')">NE 45&deg;</button>
+        </div>
+      </div>
+      <div id="floodSection" style="display:none;">
+        <div style="font-size:0.82em;color:#555;margin-top:8px;margin-bottom:4px;">Flood threshold (elevation):</div>
+        <div style="text-align:center;font-size:1.3em;font-weight:700;color:#2471a3;" id="floodThreshLabel">50 m</div>
+        <input type="range" id="floodSlider" min="1" max="200" value="50" step="1" style="width:100%;" oninput="updateFlood()">
+        <div style="display:flex;justify-content:space-between;font-size:0.78em;color:#777;"><span>1 m</span><span>100 m</span><span>200 m</span></div>
+        <div style="margin-top:8px;padding:8px;background:#eaf6fd;border-radius:4px;font-size:0.82em;">
+          <div style="display:flex;justify-content:space-between;"><span>Flooded cells:</span><span style="font-weight:700;color:#2471a3;" id="floodCells">—</span></div>
+          <div style="display:flex;justify-content:space-between;margin-top:2px;"><span>Flooded area:</span><span style="font-weight:700;color:#2471a3;" id="floodArea">—</span></div>
+          <div style="display:flex;justify-content:space-between;margin-top:2px;"><span>% of total:</span><span style="font-weight:700;color:#2471a3;" id="floodPct">—</span></div>
+        </div>
+        <div style="font-size:0.75em;color:#888;margin-top:4px;">Formula: area = cell_count &times; 8&sup2; m&sup2;</div>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <h3>Opacity</h3>
+      <div class="slider-container">
+        <div class="slider-label">
+          <span>Transparent</span>
+          <span id="opacityVal" style="font-weight:700;color:#1f618d;">80%</span>
+          <span>Opaque</span>
+        </div>
+        <input type="range" id="opacitySlider" min="20" max="100" value="80" step="5" oninput="updateOpacity()">
+      </div>
+    </div>
+
+    <div class="stats-panel">
+      <h3>Raster Info</h3>
+      <div class="stat-row"><span>Grid size:</span><span>500 &times; 500 cells</span></div>
+      <div class="stat-row"><span>Cell size:</span><span>8 m</span></div>
+      <div class="stat-row"><span>Coverage:</span><span>4 km &times; 4 km (16 km&sup2;)</span></div>
+      <div class="stat-row"><span>Elevation range:</span><span>1 &ndash; 781 m</span></div>
+      <div class="stat-row"><span>Current layer:</span><span id="statLayer">Elevation</span></div>
+      <div class="stat-row"><span>Click position:</span><span id="statElev">&mdash;</span></div>
+    </div>
+
+    <div class="info-box">
+      <strong>What is a raster?</strong> A grid of cells (pixels), each storing a numeric value. This is a real 8m DEM from LINZ covering part of Banks Peninsula &mdash; a volcanic landscape with steep valleys, ridgelines, and peaks up to 781m. Every cell holds an elevation in metres. Derived layers (hillshade, slope) are computed from the same grid using focal operations.
+    </div>
+
+    <div class="question-section">
+      <h3>Guided Questions</h3>
+
+      <div class="question">
+        <span class="q-number">Q1</span>
+        <p>Switch to <strong>Hillshade</strong> mode. Try each sun direction preset. Which sun angle best reveals the radial <strong>erosion valleys</strong> on the volcanic peaks? Why does sun direction matter for DEM visualisation?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q2</span>
+        <p>Switch to <strong>Slope</strong>. Where are the steepest areas (red)? How do they relate to the volcanic peaks and erosion channels? Name one engineering application where slope data is critical.</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q3</span>
+        <p>This DEM has <strong>500 &times; 500 cells</strong> at <strong>8 m</strong> resolution. Calculate the total area covered in km&sup2;. Show your working: Area = cols &times; rows &times; (cell size)&sup2;.</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q4</span>
+        <p>What is the difference between <strong>local, focal, and zonal</strong> raster operations? Give one example of each that could be applied to this DEM.</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q5</span>
+        <p>If you resampled this 8 m DEM to <strong>100 m cells</strong>, what terrain features would be lost? Which resampling method is appropriate for continuous elevation data vs. categorical land-use data?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q6</span>
+        <p>Switch to <strong>Flood</strong> mode. Set the threshold to <strong>50 m</strong>. How many cells are flooded and what area does that cover? Show the calculation using the formula: area = cell_count &times; 8&sup2;. Now increase to <strong>100 m</strong> &mdash; does the flooded area double? Why or why not?</p>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      ENCN205 Applied Data Analysis &mdash; GIS Component<br>
+      University of Canterbury | Data: LINZ NZ 8m DEM 2012
+    </div>
+  </div>
+</div>
+
+<script src="data/raster_meta.js"></script>
+<script src="data/dem_grid.js"></script>
+
+<script>
+var ROWS = rasterMeta.grid_size[1], COLS = rasterMeta.grid_size[0];
+var bounds = L.latLngBounds([0, 0], [ROWS, COLS]);
+
+var map = L.map('map', {
+  crs: L.CRS.Simple,
+  zoomControl: true,
+  attributionControl: false,
+  minZoom: -2,
+  maxZoom: 4
+});
+map.fitBounds(bounds);
+
+var rasterImages = {
+  elevation:  'data/raster_elevation.png',
+  hillshade_default: 'data/raster_hillshade_default.png',
+  hillshade_east:    'data/raster_hillshade_east.png',
+  hillshade_south:   'data/raster_hillshade_south.png',
+  hillshade_ne:      'data/raster_hillshade_ne.png',
+  slope:      'data/raster_slope.png'
+};
+
+var overlays = {};
+Object.keys(rasterImages).forEach(function(key) {
+  overlays[key] = L.imageOverlay(rasterImages[key], bounds, { opacity: 0.8, interactive: false });
+});
+
+var currentMode = 'elevation';
+var currentSun = 'default';
+var activeOverlays = [];
+
+function clearOverlays() {
+  activeOverlays.forEach(function(o) { map.removeLayer(o); });
+  activeOverlays = [];
+}
+
+function getOpacity() {
+  return parseInt(document.getElementById('opacitySlider').value) / 100;
+}
+
+function showOverlay(key) {
+  var ov = overlays[key];
+  ov.setOpacity(getOpacity());
+  ov.addTo(map);
+  activeOverlays.push(ov);
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(function(btn) {
+    var isActive = btn.getAttribute('onclick').indexOf("'" + mode + "'") >= 0;
+    btn.classList.toggle('active', isActive);
+  });
+  var fb = document.getElementById('btnFlood');
+  if (mode === 'flood') {
+    fb.style.background = '#2471a3'; fb.style.color = 'white';
+  } else {
+    fb.style.background = 'white'; fb.style.color = '#2471a3';
+  }
+  document.getElementById('sunSection').style.display = (mode === 'hillshade' || mode === 'combined') ? 'block' : 'none';
+  document.getElementById('floodSection').style.display = mode === 'flood' ? 'block' : 'none';
+
+  clearOverlays();
+  removeFloodOverlay();
+  if (mode === 'elevation') {
+    showOverlay('elevation');
+  } else if (mode === 'hillshade') {
+    showOverlay('hillshade_' + currentSun);
+  } else if (mode === 'slope') {
+    showOverlay('slope');
+  } else if (mode === 'combined') {
+    showOverlay('hillshade_' + currentSun);
+    activeOverlays[0].setOpacity(0.5);
+    showOverlay('elevation');
+    activeOverlays[1].setOpacity(0.5);
+  } else if (mode === 'flood') {
+    showOverlay('elevation');
+    activeOverlays[0].setOpacity(0.5);
+    updateFlood();
+  }
+
+  var labels = { elevation:'Elevation', hillshade:'Hillshade', slope:'Slope', combined:'Combined', flood:'Flood Analysis' };
+  document.getElementById('statLayer').textContent = labels[mode] || mode;
+  updateLegend();
+}
+
+function setSun(sun) {
+  currentSun = sun;
+  document.querySelectorAll('.sun-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.getAttribute('onclick').indexOf("'" + sun + "'") >= 0);
+  });
+  if (currentMode === 'hillshade' || currentMode === 'combined') setMode(currentMode);
+}
+
+function updateOpacity() {
+  var v = parseInt(document.getElementById('opacitySlider').value);
+  document.getElementById('opacityVal').textContent = v + '%';
+  var op = v / 100;
+  if (currentMode === 'combined') {
+    activeOverlays.forEach(function(o) { o.setOpacity(op * 0.6); });
+  } else {
+    activeOverlays.forEach(function(o) { o.setOpacity(op); });
+  }
+}
+
+// --- Flood overlay (canvas-based) ---
+var floodCanvas = null;
+var floodOverlay = null;
+
+function updateFlood() {
+  var threshold = parseInt(document.getElementById('floodSlider').value);
+  document.getElementById('floodThreshLabel').textContent = threshold + ' m';
+
+  var data = demGrid.data;
+  var rows = demGrid.rows, cols = demGrid.cols;
+  var totalCells = rows * cols;
+
+  // Create off-screen canvas
+  var canvas = document.createElement('canvas');
+  canvas.width = cols;
+  canvas.height = rows;
+  var ctx = canvas.getContext('2d');
+  var imgData = ctx.createImageData(cols, rows);
+  var px = imgData.data;
+
+  var floodedCount = 0;
+  for (var r = 0; r < rows; r++) {
+    for (var c = 0; c < cols; c++) {
+      var idx = r * cols + c;
+      var elev = data[idx];
+      var pIdx = idx * 4;
+      if (elev > 0 && elev < threshold) {
+        px[pIdx]     = 36;   // R  (#2471a3)
+        px[pIdx + 1] = 113;  // G
+        px[pIdx + 2] = 163;  // B
+        px[pIdx + 3] = 180;  // A
+        floodedCount++;
+      } else {
+        px[pIdx + 3] = 0;
+      }
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+
+  // Update stats
+  var cellArea = demGrid.px * demGrid.px;
+  var areaM2 = floodedCount * cellArea;
+  var areaKm2 = (areaM2 / 1e6).toFixed(2);
+  var pct = (floodedCount / totalCells * 100).toFixed(1);
+  document.getElementById('floodCells').textContent = floodedCount.toLocaleString();
+  document.getElementById('floodArea').textContent = areaKm2 + ' km²';
+  document.getElementById('floodPct').textContent = pct + '%';
+
+  // Replace overlay
+  removeFloodOverlay();
+  floodOverlay = L.imageOverlay(canvas.toDataURL(), bounds, { opacity: 1, interactive: false });
+  floodOverlay.addTo(map);
+  updateLegend();
+}
+
+function removeFloodOverlay() {
+  if (floodOverlay) {
+    map.removeLayer(floodOverlay);
+    floodOverlay = null;
+  }
+}
+
+map.on('click', function(e) {
+  var row = Math.round(ROWS - e.latlng.lat);
+  var col = Math.round(e.latlng.lng);
+  if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
+    var kmX = (col * rasterMeta.pixel_size_m / 1000).toFixed(1);
+    var kmY = ((ROWS - row) * rasterMeta.pixel_size_m / 1000).toFixed(1);
+    var elev = demGrid.data[row * COLS + col];
+    var elevStr = elev > 0 ? elev + ' m' : 'No data';
+    document.getElementById('statElev').textContent =
+      elevStr + ' — Row ' + row + ', Col ' + col + ' (' + kmX + ' km, ' + kmY + ' km)';
+  }
+});
+
+var legendControl = L.control({ position: 'bottomleft' });
+legendControl.onAdd = function() {
+  var div = L.DomUtil.create('div', 'legend');
+  div.id = 'legendDiv';
+  return div;
+};
+legendControl.addTo(map);
+
+function updateLegend() {
+  var div = document.getElementById('legendDiv');
+  if (currentMode === 'elevation' || currentMode === 'combined') {
+    div.innerHTML = '<div class="legend-title">Elevation (m)</div>' +
+      '<div class="legend-item"><span class="legend-bar" style="background:linear-gradient(to right,#1e8c50,#82dc32,#c8d228,#e0b428,#d07850,#d2c8c8)"></span></div>' +
+      '<div class="legend-item" style="justify-content:space-between;width:120px"><span>1</span><span>400</span><span>781</span></div>';
+  } else if (currentMode === 'hillshade') {
+    div.innerHTML = '<div class="legend-title">Hillshade</div>' +
+      '<div class="legend-item"><span class="legend-bar" style="background:linear-gradient(to right,#222,#888,#fff)"></span></div>' +
+      '<div class="legend-item" style="justify-content:space-between;width:120px"><span>Shadow</span><span>Lit</span></div>';
+  } else if (currentMode === 'slope') {
+    div.innerHTML = '<div class="legend-title">Slope (degrees)</div>' +
+      '<div class="legend-item"><span class="legend-bar" style="background:linear-gradient(to right,#00c832,#c8c800,#ff5000,#ff0000)"></span></div>' +
+      '<div class="legend-item" style="justify-content:space-between;width:120px"><span>0&deg; (flat)</span><span>Steep</span></div>';
+  } else if (currentMode === 'flood') {
+    var t = document.getElementById('floodSlider').value;
+    div.innerHTML = '<div class="legend-title">Flood Analysis</div>' +
+      '<div class="legend-item"><span class="legend-swatch" style="background:#2471a3;opacity:0.7;"></span> Flooded (elev &lt; ' + t + ' m)</div>' +
+      '<div class="legend-item"><span class="legend-swatch" style="background:transparent;border:1px solid #aaa;"></span> Above threshold</div>';
+  }
+}
+
+setMode('elevation');
+</script>
+</body>
+</html>

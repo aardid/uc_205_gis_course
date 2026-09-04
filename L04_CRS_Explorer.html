@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L04 Demo: CRS & Projections — Why Projections Matter</title>
+<link rel="stylesheet" href="lib/leaflet/leaflet.css" />
+<script src="lib/leaflet/leaflet.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; height: 100vh; display: flex; flex-direction: column; background: #f5f5f5; }
+
+  .header { background: linear-gradient(135deg, #1a5276, #2980b9); color: white; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 1.2em; font-weight: 600; }
+  .header .subtitle { font-size: 0.85em; opacity: 0.9; }
+  .header .badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-size: 0.8em; }
+
+  .main { display: flex; flex: 1; overflow: hidden; }
+  .map-area { flex: 1; display: flex; flex-direction: column; position: relative; }
+  #map { flex: 1; }
+
+  .coord-bar { background: #2c3e50; color: #ecf0f1; padding: 8px 16px; font-size: 0.82em; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+  .coord-bar .label { color: #95a5a6; margin-right: 4px; }
+  .coord-bar .val { font-family: 'Consolas', monospace; color: #f1c40f; }
+  .coord-bar .measure-info { color: #e74c3c; font-weight: 600; }
+
+  .mismatch-banner { display: none; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 1000;
+    background: #e74c3c; color: white; padding: 14px 24px; border-radius: 8px; font-size: 0.9em; text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3); max-width: 620px; line-height: 1.5; }
+
+  .panel { width: 380px; background: white; overflow-y: auto; border-left: 2px solid #e0e0e0; display: flex; flex-direction: column; }
+  .panel-header { background: #2c3e50; color: white; padding: 16px; text-align: center; }
+  .panel-header h2 { font-size: 1.1em; margin-bottom: 4px; }
+  .panel-header p { font-size: 0.8em; opacity: 0.8; }
+
+  .control-section { padding: 16px; border-bottom: 1px solid #eee; }
+  .control-section h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .btn-group { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  .btn-group button { padding: 6px 12px; border: 2px solid #2980b9; background: white; color: #2980b9; border-radius: 4px; cursor: pointer; font-size: 0.82em; font-weight: 600; transition: all 0.15s; }
+  .btn-group button.active { background: #2980b9; color: white; }
+  .btn-group button:hover { background: #d4e6f1; }
+  .btn-group button.active:hover { background: #2471a3; }
+  .btn-group button.danger { border-color: #e74c3c; color: #e74c3c; }
+  .btn-group button.danger.active { background: #e74c3c; color: white; }
+
+  .layer-toggle { display: flex; align-items: center; padding: 6px 0; }
+  .layer-toggle input { margin-right: 10px; transform: scale(1.2); cursor: pointer; }
+  .layer-toggle .swatch { width: 20px; height: 14px; border-radius: 3px; margin-right: 8px; border: 1px solid #ccc; display: inline-block; }
+  .layer-toggle label { font-size: 0.9em; cursor: pointer; flex: 1; }
+
+  .crs-table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 0.82em; }
+  .crs-table th { background: #2c3e50; color: white; padding: 6px; text-align: left; }
+  .crs-table td { padding: 6px; border-bottom: 1px solid #eee; }
+
+
+  .info-box { background: #eaf2f8; border: 1px solid #2980b9; border-radius: 6px; padding: 12px; margin: 12px 16px; font-size: 0.85em; line-height: 1.5; }
+  .info-box strong { color: #1a5276; }
+
+  .question-section { padding: 16px; flex: 1; }
+  .question-section h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .question { background: #f8f9fa; border-left: 4px solid #2980b9; padding: 12px; margin-bottom: 12px; border-radius: 0 6px 6px 0; }
+  .question .q-number { font-weight: 700; color: #2980b9; font-size: 0.85em; }
+  .question p { font-size: 0.88em; color: #333; margin-top: 4px; line-height: 1.5; }
+
+  .footer-note { padding: 12px 16px; background: #f0f0f0; font-size: 0.75em; color: #888; text-align: center; border-top: 1px solid #ddd; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>ENCN205 — Lecture 04: CRS & Projections</h1>
+    <div class="subtitle">Interactive Demo: Why Projections Matter</div>
+  </div>
+  <div class="badge">~10 min activity</div>
+</div>
+
+<div class="main">
+  <div class="map-area">
+    <div id="map"></div>
+    <div id="mismatchBanner" class="mismatch-banner">
+      <strong>CRS MISMATCH!</strong><br>
+      An NZTM coordinate like (1,580,000 , 5,180,000) plotted as WGS84 degrees would place the data at longitude 1,580,000° — a point that <em>doesn't exist on Earth</em>.<br>
+      This is what happens when you use <code>set_crs(4326)</code> on NZTM data instead of <code>to_crs(4326)</code>.
+    </div>
+    <div class="coord-bar">
+      <div><span class="label">WGS84:</span> <span class="val" id="coordWGS84">Move mouse over map</span></div>
+      <div><span class="label">NZTM:</span> <span class="val" id="coordNZTM">—</span></div>
+      <div id="measureResult" class="measure-info"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>CRS Explorer</h2>
+      <p>See how projections distort the world and why CRS matters for NZ engineering</p>
+    </div>
+
+    <div class="control-section">
+      <h3>1. Scale & View</h3>
+      <div class="btn-group">
+        <button id="btnWorld" class="active" onclick="setView('world')">World View</button>
+        <button id="btnNZ" onclick="setView('nz')">New Zealand</button>
+        <button id="btnLocal" onclick="setView('local')">New Brighton</button>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <h3>2. CRS Mode</h3>
+      <div class="btn-group">
+        <button id="btnWGS" class="active" onclick="setCRS('wgs84')">WGS84 (EPSG:4326)</button>
+        <button id="btnNZTM" onclick="setCRS('nztm')">NZTM (EPSG:2193)</button>
+        <button id="btnMismatch" class="danger" onclick="setCRS('mismatch')">Mismatch!</button>
+      </div>
+      <table class="crs-table">
+        <tr><th>Property</th><th id="crsCol">WGS84</th></tr>
+        <tr><td>EPSG Code</td><td id="crsEpsg">4326</td></tr>
+        <tr><td>Type</td><td id="crsType">Geographic</td></tr>
+        <tr><td>Units</td><td id="crsUnits">Degrees (°)</td></tr>
+        <tr><td>Best for</td><td id="crsUse">GPS, web maps, data sharing</td></tr>
+        <tr><td><code>.area</code> returns</td><td id="crsArea">degrees² (meaningless!)</td></tr>
+        <tr><td><code>.buffer(100)</code></td><td id="crsBuffer">100° ≈ 11,000 km radius</td></tr>
+      </table>
+    </div>
+
+    <div class="control-section">
+      <h3>3. Measure Distance</h3>
+      <p style="font-size:0.82em;color:#555;margin-bottom:8px;">Click two points on the map to measure distance in metres and degrees.</p>
+      <div class="btn-group">
+        <button id="btnMeasure" onclick="toggleMeasure()">Start Measuring</button>
+        <button onclick="clearMeasure()">Clear</button>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <h3>Layers</h3>
+      <div class="layer-toggle"><input type="checkbox" id="chkGreenland" checked><span class="swatch" style="background:#1abc9c;"></span><label for="chkGreenland">Greenland outline</label></div>
+      <div class="layer-toggle"><input type="checkbox" id="chkAfrica" checked><span class="swatch" style="background:#e67e22;"></span><label for="chkAfrica">Africa outline</label></div>
+      <div class="layer-toggle"><input type="checkbox" id="chkCoastline" checked><span class="swatch" style="background:#27ae60;"></span><label for="chkCoastline">NB Coastline</label></div>
+      <div class="layer-toggle"><input type="checkbox" id="chkRoads"><span class="swatch" style="background:#7f8c8d;"></span><label for="chkRoads">NB Roads</label></div>
+      <div class="layer-toggle"><input type="checkbox" id="chkMarae"><span class="swatch" style="background:#e91e63;"></span><label for="chkMarae">NB Marae</label></div>
+    </div>
+
+    <div class="question-section">
+      <h3>Guided Questions</h3>
+
+      <div class="question">
+        <span class="q-number">Q1</span>
+        <p>In the <strong>World View</strong>, compare the <span style="color:#1abc9c;font-weight:600;">green Greenland</span> and <span style="color:#e67e22;font-weight:600;">orange Africa</span> outlines. Estimate how their sizes compare on this map. Now <strong>look up their actual areas online</strong> (in km²). How much does the map distort them, and why?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q2</span>
+        <p>Switch to <strong>New Brighton</strong> view and move your mouse across the map. Watch the coordinate bar at the bottom. What <strong>units</strong> does WGS84 use? What units does NZTM use? Which CRS would you use to measure a 100m pipe?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q3</span>
+        <p>Click the <strong>Mismatch!</strong> button. Read the warning. Explain in your own words: what is the difference between <code>set_crs()</code> and <code>to_crs()</code>? What goes wrong if you use the wrong one?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q4</span>
+        <p>Use the <strong>Measure Distance</strong> tool on the NB map. Click two points ~500m apart. Compare the result in <strong>metres vs degrees</strong>. At latitude 43.5°S, how many metres is 0.001° of longitude?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q5</span>
+        <p>After the Canterbury earthquakes, the ground moved up to <strong>0.5m vertically</strong> and several metres horizontally. What implications does this have for spatial datasets created <strong>before 2010</strong>? Think about flood models, pipe networks, and property boundaries.</p>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      ENCN205 Applied Data Analysis — GIS Component<br>
+      University of Canterbury | Data: LINZ, Stats NZ
+    </div>
+  </div>
+</div>
+
+<script src="data/study_area.js"></script>
+<script src="data/coastline.js"></script>
+<script src="data/roads.js"></script>
+<script src="data/marae.js"></script>
+
+<script>
+// ── Simplified continental outlines ──────────────────────────────────────────
+var greenlandPts = [
+  [76.5,-73],[77.5,-72],[79,-72],[80,-67],[81,-64],[82,-60],[83,-45],[83.6,-34],
+  [83,-24],[81.5,-17],[80,-19.5],[78,-18.5],[76,-19],[74,-20],[72,-22],[70,-22],
+  [68.5,-26],[67,-32],[65.5,-37],[63.5,-41],[61.5,-42],[60.5,-43],[59.8,-44],
+  [60,-46],[60.5,-48],[61,-49],[63,-51],[64,-52],[66,-53.5],[67.5,-54],[69,-54],
+  [70.5,-52],[71.5,-53.5],[72.5,-56],[74,-58],[75.5,-62],[76,-68],[76.5,-73]];
+var africaPts = [
+  [37.5,10],[36,12],[33,12],[31,25],[31.5,32],[30,33],[22,36],[15,42],[12,44],
+  [11.5,51],[5,46],[0,42],[-4,40],[-10,40],[-15,41],[-25,35],[-34.5,26],[-34.8,20],
+  [-33.5,18],[-32,17],[-28,15],[-22,14],[-17,12],[-12,13],[-6,12],[0,9],
+  [4,7],[4,2],[5,-3],[5,-8],[8,-13],[12,-17],[15,-17],[21,-17],
+  [27,-13],[32,-6],[35,-5],[37,-2],[37.5,10]];
+
+var greenlandGJ = {type:"Feature",geometry:{type:"Polygon",
+  coordinates:[greenlandPts.map(function(c){return[c[1],c[0]]})]}};
+var africaGJ = {type:"Feature",geometry:{type:"Polygon",
+  coordinates:[africaPts.map(function(c){return[c[1],c[0]]})]}};
+
+// ── Map ──────────────────────────────────────────────────────────────────────
+var map = L.map('map', {zoomControl:true}).setView([20, 0], 2);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution:'&copy; OSM', maxZoom:18}).addTo(map);
+
+var greenlandLayer = L.geoJSON(greenlandGJ, {
+  style:{color:'#1abc9c',weight:3,fillColor:'#d5f5e3',fillOpacity:0.4}
+}).addTo(map);
+greenlandLayer.bindPopup('<b>Greenland</b><br>Look up the actual area online!');
+
+var africaLayer = L.geoJSON(africaGJ, {
+  style:{color:'#e67e22',weight:3,fillColor:'#fdebd0',fillOpacity:0.3}
+}).addTo(map);
+africaLayer.bindPopup('<b>Africa</b><br>Look up the actual area online!');
+
+var coastlineLayer = L.geoJSON(coastlineData, {
+  style:{color:'#27ae60',weight:2,fillColor:'#a8e6cf',fillOpacity:0.3}
+}).addTo(map);
+
+var roadsLayer = L.geoJSON(roadsData, {
+  style:{color:'#7f8c8d',weight:1.5,opacity:0.8},
+  onEachFeature:function(f,l){ l.bindPopup('<b>Road:</b> '+(f.properties.name||'Unnamed')); }
+});
+
+var maraeIcon = L.divIcon({
+  html:'<div style="background:#e91e63;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>',
+  className:'',iconSize:[14,14],iconAnchor:[7,7]
+});
+var maraeLayer = L.geoJSON(maraeData, {
+  pointToLayer:function(f,ll){return L.marker(ll,{icon:maraeIcon});},
+  onEachFeature:function(f,l){ l.bindPopup('<b>Marae:</b> '+(f.properties.Name||f.properties.name||'Marae')); }
+});
+
+// ── Layer toggles ────────────────────────────────────────────────────────────
+var layerMap = {chkCoastline:coastlineLayer,chkRoads:roadsLayer,chkMarae:maraeLayer,chkGreenland:greenlandLayer,chkAfrica:africaLayer};
+Object.keys(layerMap).forEach(function(id){
+  document.getElementById(id).addEventListener('change',function(){
+    if(this.checked) map.addLayer(layerMap[id]); else map.removeLayer(layerMap[id]);
+  });
+});
+
+// ── View ─────────────────────────────────────────────────────────────────────
+function setView(v){
+  document.querySelectorAll('#btnWorld,#btnNZ,#btnLocal').forEach(function(b){b.classList.remove('active')});
+  if(v==='world'){map.setView([20,0],2);document.getElementById('btnWorld').classList.add('active');}
+  else if(v==='nz'){map.setView([-41.5,174],5);document.getElementById('btnNZ').classList.add('active');}
+  else{
+    map.fitBounds(studyArea.bounds);
+    document.getElementById('btnLocal').classList.add('active');
+    if(!map.hasLayer(coastlineLayer)){document.getElementById('chkCoastline').checked=true;map.addLayer(coastlineLayer);}
+    if(!map.hasLayer(roadsLayer)){document.getElementById('chkRoads').checked=true;map.addLayer(roadsLayer);}
+    if(!map.hasLayer(maraeLayer)){document.getElementById('chkMarae').checked=true;map.addLayer(maraeLayer);}
+  }
+}
+
+// ── CRS mode ─────────────────────────────────────────────────────────────────
+function setCRS(mode){
+  document.querySelectorAll('#btnWGS,#btnNZTM,#btnMismatch').forEach(function(b){b.classList.remove('active')});
+  document.getElementById('mismatchBanner').style.display='none';
+  var t={
+    wgs84:{col:'WGS84',epsg:'4326',type:'Geographic',units:'Degrees (°)',use:'GPS, web maps, data sharing',area:'degrees² (meaningless!)',buffer:'100° ≈ 11,000 km radius'},
+    nztm:{col:'NZTM2000',epsg:'2193',type:'Projected (Transverse Mercator)',units:'Metres (m)',use:'NZ engineering, measurement, analysis',area:'m² (correct!)',buffer:'100 m = 100 metres (correct!)'},
+    mismatch:{col:'MISMATCH',epsg:'???',type:'ERROR',units:'Mixed (degrees + metres)',use:'NEVER — always check CRS first!',area:'<span style="color:#e74c3c">WRONG — silent failure</span>',buffer:'<span style="color:#e74c3c">WRONG — unknown units</span>'}
+  }[mode];
+  document.getElementById('crsCol').textContent=t.col;
+  document.getElementById('crsEpsg').textContent=t.epsg;
+  document.getElementById('crsType').textContent=t.type;
+  document.getElementById('crsUnits').textContent=t.units;
+  document.getElementById('crsUse').textContent=t.use;
+  document.getElementById('crsArea').innerHTML=t.area;
+  document.getElementById('crsBuffer').innerHTML=t.buffer;
+  document.getElementById('btn'+(mode==='wgs84'?'WGS':mode==='nztm'?'NZTM':'Mismatch')).classList.add('active');
+  if(mode==='mismatch') document.getElementById('mismatchBanner').style.display='block';
+}
+
+// ── Coordinates ──────────────────────────────────────────────────────────────
+map.on('mousemove',function(e){
+  var lat=e.latlng.lat, lng=e.latlng.lng;
+  document.getElementById('coordWGS84').textContent=lat.toFixed(5)+'°, '+lng.toFixed(5)+'°';
+  var nE=1600000+(lng-173.0)*111000*Math.cos(lat*Math.PI/180);
+  var nN=5181000+(lat+43.5)*111000;
+  document.getElementById('coordNZTM').textContent=nE.toFixed(0)+' E, '+nN.toFixed(0)+' N';
+});
+
+// ── Measure ──────────────────────────────────────────────────────────────────
+var measuring=false, mPts=[], mMarkers=[], mLine=null;
+function toggleMeasure(){
+  measuring=!measuring;
+  var b=document.getElementById('btnMeasure');
+  b.textContent=measuring?'Click 2 points...':'Start Measuring';
+  if(measuring)b.classList.add('active'); else b.classList.remove('active');
+  map.getContainer().style.cursor=measuring?'crosshair':'';
+}
+function clearMeasure(){
+  mPts=[];mMarkers.forEach(function(m){map.removeLayer(m)});mMarkers=[];
+  if(mLine){map.removeLayer(mLine);mLine=null;}
+  document.getElementById('measureResult').textContent='';
+  measuring=false;
+  document.getElementById('btnMeasure').textContent='Start Measuring';
+  document.getElementById('btnMeasure').classList.remove('active');
+  map.getContainer().style.cursor='';
+}
+map.on('click',function(e){
+  if(!measuring) return;
+  mPts.push(e.latlng);
+  mMarkers.push(L.circleMarker(e.latlng,{radius:6,color:'#e74c3c',fillColor:'#e74c3c',fillOpacity:1}).addTo(map));
+  if(mPts.length===2){
+    var p1=mPts[0],p2=mPts[1];
+    mLine=L.polyline([p1,p2],{color:'#e74c3c',weight:3,dashArray:'8,8'}).addTo(map);
+    var dM=p1.distanceTo(p2);
+    var dDeg=Math.sqrt(Math.pow(p2.lat-p1.lat,2)+Math.pow(p2.lng-p1.lng,2));
+    var txt=dM>1000?(dM/1000).toFixed(2)+' km':dM.toFixed(1)+' m';
+    txt+='  |  '+dDeg.toFixed(5)+'°';
+    document.getElementById('measureResult').textContent='Distance: '+txt;
+    mLine.bindPopup('<b>Distance</b><br>'+dM.toFixed(1)+' metres<br>'+dDeg.toFixed(6)+' degrees<br><em>Note: degrees vary with latitude!</em>').openPopup();
+    toggleMeasure();
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L09 Demo: Hydrological Analysis — Buller River Catchment Explorer</title>
+<link rel="stylesheet" href="lib/leaflet/leaflet.css" />
+<script src="lib/leaflet/leaflet.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; height: 100vh; display: flex; flex-direction: column; background: #f5f5f5; }
+  .header { background: linear-gradient(135deg, #1a5276, #2980b9); color: white; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 1.2em; font-weight: 600; }
+  .header .subtitle { font-size: 0.85em; opacity: 0.9; }
+  .header .badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-size: 0.8em; }
+  .main { display: flex; flex: 1; overflow: hidden; }
+  #map { flex: 1; min-width: 0; }
+  .panel { width: 380px; background: white; overflow-y: auto; border-left: 2px solid #e0e0e0; display: flex; flex-direction: column; }
+  .panel-header { background: #2c3e50; color: white; padding: 16px; text-align: center; }
+  .panel-header h2 { font-size: 1.1em; margin-bottom: 4px; }
+  .panel-header p { font-size: 0.8em; opacity: 0.8; }
+  .control-section { padding: 16px; border-bottom: 1px solid #eee; }
+  .control-section h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .mode-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .mode-btn { padding: 6px 12px; border: 2px solid #2980b9; background: white; color: #2980b9; border-radius: 6px; font-size: 0.82em; cursor: pointer; font-weight: 600; transition: all 0.15s; }
+  .mode-btn.active { background: #2980b9; color: white; }
+  .mode-btn:hover:not(.active) { background: #d6eaf8; }
+
+  .toggle-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+  .toggle-row label { font-size: 0.85em; color: #333; cursor: pointer; }
+  .toggle-row input[type=checkbox] { width: 18px; height: 18px; cursor: pointer; }
+
+  .stats-panel { padding: 12px 16px; background: #f8f9fa; border-bottom: 1px solid #eee; }
+  .stats-panel h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-row { display: flex; justify-content: space-between; font-size: 0.85em; padding: 3px 0; border-bottom: 1px dotted #ddd; }
+  .stat-row span:last-child { font-weight: 700; color: #1a5276; }
+
+  .info-box { background: #eaf2f8; border: 1px solid #2980b9; border-radius: 6px; padding: 12px; margin: 12px 16px; font-size: 0.85em; line-height: 1.5; }
+  .info-box strong { color: #1a5276; }
+
+  .question-section { padding: 16px; flex: 1; }
+  .question-section h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .question { background: #f8f9fa; border-left: 4px solid #2980b9; padding: 12px; margin-bottom: 12px; border-radius: 0 6px 6px 0; }
+  .question .q-number { font-weight: 700; color: #2980b9; font-size: 0.85em; }
+  .question p { font-size: 0.88em; color: #333; margin-top: 4px; line-height: 1.5; }
+
+  .footer-note { padding: 12px 16px; background: #f0f0f0; font-size: 0.75em; color: #888; text-align: center; border-top: 1px solid #ddd; }
+
+  .legend { background: white; padding: 8px 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.75em; line-height: 1.6; }
+  .legend-title { font-weight: 700; margin-bottom: 4px; color: #2c3e50; }
+  .legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+  .legend-swatch { width: 24px; height: 10px; border-radius: 2px; display: inline-block; }
+  .legend-line { width: 24px; height: 3px; display: inline-block; border-radius: 2px; }
+
+  #selectedInfo { background: #fef9e7; border: 1px solid #f39c12; border-radius: 6px; padding: 10px; margin: 0 16px 12px; font-size: 0.85em; line-height: 1.5; display: none; }
+  #selectedInfo strong { color: #7d6608; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>ENCN205 — Lecture 09: Hydrological Analysis</h1>
+    <div class="subtitle">Interactive Demo: Buller River Catchment Explorer — Stream Networks &amp; Sub-catchments</div>
+  </div>
+  <div class="badge">~10 min activity</div>
+</div>
+
+<div class="main">
+  <div id="map"></div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Buller River Catchment</h2>
+      <p>Stream networks &amp; sub-catchments at two Strahler orders</p>
+    </div>
+
+    <div class="control-section">
+      <h3>Strahler Order</h3>
+      <div class="mode-btns">
+        <button class="mode-btn active" id="btnOrder2" onclick="setOrder(2)">Order 2+ (3,241 reaches)</button>
+        <button class="mode-btn" id="btnOrder3" onclick="setOrder(3)">Order 3+ (1,458 reaches)</button>
+      </div>
+      <div style="font-size:0.78em;color:#888;margin-top:4px;">Higher order = fewer, larger streams and catchments.</div>
+    </div>
+
+    <div class="control-section">
+      <h3>Layers</h3>
+      <div class="toggle-row">
+        <input type="checkbox" id="chkStreams" checked onchange="updateLayers()">
+        <label for="chkStreams">Stream network</label>
+      </div>
+      <div class="toggle-row">
+        <input type="checkbox" id="chkCatchments" onchange="updateLayers()">
+        <label for="chkCatchments">Sub-catchment boundaries</label>
+      </div>
+      <div style="font-size:0.78em;color:#888;margin-top:6px;">Click a <strong>stream reach</strong> to highlight its paired sub-catchment.</div>
+    </div>
+
+    <div id="selectedInfo">
+      <strong>Selected:</strong> <span id="selectedText"></span>
+      <br><button onclick="clearSelection()" style="margin-top:6px;padding:3px 10px;font-size:0.8em;cursor:pointer;">Clear</button>
+    </div>
+
+    <div class="stats-panel">
+      <h3>Network Statistics</h3>
+      <div class="stat-row"><span>Strahler order:</span><span id="statOrder">2+</span></div>
+      <div class="stat-row"><span>Stream reaches:</span><span id="statStreams">3,241</span></div>
+      <div class="stat-row"><span>Sub-catchments:</span><span id="statCatchments">3,241</span></div>
+      <div class="stat-row"><span>Catchment area:</span><span>~6,500 km&sup2;</span></div>
+      <div class="stat-row"><span>Data source:</span><span>NIWA 2020</span></div>
+    </div>
+
+    <div class="info-box">
+      <strong>Strahler stream ordering:</strong> Headwater streams with no tributaries are <strong>order 1</strong>. When two streams of the same order join, the result is one order higher. When streams of different order join, the higher order continues. This data shows order 2+ and order 3+ networks for the Buller River, NZ's second-largest river by discharge.
+    </div>
+
+    <div class="question-section">
+      <h3>Guided Questions</h3>
+
+      <div class="question">
+        <span class="q-number">Q1</span>
+        <p>Toggle between <strong>Order 2+</strong> and <strong>Order 3+</strong>. How many stream reaches disappear? What does this tell you about the structure of a drainage network — are most reaches high-order or low-order?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q2</span>
+        <p>Turn on <strong>Sub-catchment boundaries</strong>. Click several stream reaches in different parts of the catchment. How does sub-catchment size relate to stream order? Why are headwater catchments smaller than downstream ones?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q3</span>
+        <p>Look at the <strong>drainage density</strong> (how closely spaced the streams are). Is it uniform across the catchment? What factors — geology, rainfall, slope — might explain spatial variation in drainage density?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q4</span>
+        <p>The Buller catchment is ~6,500 km&sup2;. At <strong>Order 2+</strong>, there are 3,241 sub-catchments. What is the average sub-catchment area? At <strong>Order 3+</strong> (1,458 sub-catchments), what is it? Why does the average change?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q5</span>
+        <p>Strahler ordering is used in hydrology to classify stream importance. Why might a civil engineer care about stream order when designing a <strong>bridge</strong> or <strong>culvert</strong>? What design parameter scales with stream order?</p>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      ENCN205 Applied Data Analysis — GIS Component<br>
+      University of Canterbury | Data: NIWA Buller River Network (2020)
+    </div>
+  </div>
+</div>
+
+<script src="data/buller_streams2.js"></script>
+<script src="data/buller_streams3.js"></script>
+<script src="data/buller_catchments2.js"></script>
+<script src="data/buller_catchments3.js"></script>
+<script src="data/buller_meta.js"></script>
+
+<script>
+var map = L.map('map', {
+  zoomControl: true,
+  attributionControl: true
+}).setView(bullerMeta.center, 9);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors',
+  maxZoom: 16
+}).addTo(map);
+
+map.fitBounds(bullerMeta.bounds, { padding: [20, 20] });
+
+var currentOrder = 2;
+var streamLayerGroup = null;
+var catchmentLayerGroup = null;
+var highlightLayer = null;
+var selectedCatId = null;
+
+var streamColors = ['#1a5276','#2471a3','#2e86c1','#3498db','#5dade2','#85c1e9','#aed6f1'];
+
+function hashColor(id) {
+  return streamColors[Math.abs(id * 2654435761) % streamColors.length];
+}
+
+function getStreamData() {
+  return currentOrder === 2 ? bullerStreams2 : bullerStreams3;
+}
+function getCatchData() {
+  return currentOrder === 2 ? bullerCatchments2 : bullerCatchments3;
+}
+
+function buildStreamLayer() {
+  if (streamLayerGroup) map.removeLayer(streamLayerGroup);
+  var data = getStreamData();
+
+  streamLayerGroup = L.geoJSON(data, {
+    style: function(f) {
+      var isSelected = f.properties.cat_id === selectedCatId;
+      return {
+        color: isSelected ? '#e74c3c' : '#1a5276',
+        weight: isSelected ? 4 : 1.8,
+        opacity: isSelected ? 1 : 0.7
+      };
+    },
+    onEachFeature: function(f, layer) {
+      layer.on('click', function() {
+        selectStream(f.properties.cat_id);
+      });
+      layer.on('mouseover', function(e) {
+        if (f.properties.cat_id !== selectedCatId) {
+          e.target.setStyle({ weight: 3, color: '#e67e22', opacity: 1 });
+        }
+      });
+      layer.on('mouseout', function(e) {
+        if (f.properties.cat_id !== selectedCatId) {
+          e.target.setStyle({ weight: 1.8, color: '#1a5276', opacity: 0.7 });
+        }
+      });
+    }
+  });
+
+  if (document.getElementById('chkStreams').checked) {
+    streamLayerGroup.addTo(map);
+  }
+}
+
+function buildCatchmentLayer() {
+  if (catchmentLayerGroup) map.removeLayer(catchmentLayerGroup);
+  var data = getCatchData();
+
+  catchmentLayerGroup = L.geoJSON(data, {
+    style: function(f) {
+      var isSelected = f.properties.cat_id === selectedCatId;
+      return {
+        color: '#555',
+        weight: 0.5,
+        fillColor: isSelected ? '#e74c3c' : hashColor(f.properties.cat_id),
+        fillOpacity: isSelected ? 0.45 : 0.08,
+        opacity: 0.4
+      };
+    },
+    onEachFeature: function(f, layer) {
+      layer.on('click', function() {
+        selectStream(f.properties.cat_id);
+      });
+    }
+  });
+
+  if (document.getElementById('chkCatchments').checked) {
+    catchmentLayerGroup.addTo(map);
+  }
+}
+
+function selectStream(catId) {
+  selectedCatId = catId;
+  buildStreamLayer();
+  buildCatchmentLayer();
+  updateLayers();
+
+  if (highlightLayer) { map.removeLayer(highlightLayer); highlightLayer = null; }
+  var catchData = getCatchData();
+  var matchedFeatures = catchData.features.filter(function(f) { return f.properties.cat_id === catId; });
+  if (matchedFeatures.length > 0) {
+    highlightLayer = L.geoJSON({ type: 'FeatureCollection', features: matchedFeatures }, {
+      style: { color: '#e74c3c', weight: 3, fillColor: '#e74c3c', fillOpacity: 0.35 }
+    }).addTo(map);
+  }
+
+  document.getElementById('selectedInfo').style.display = 'block';
+  document.getElementById('selectedText').textContent =
+    'Reach & sub-catchment ID: ' + catId + ' (Order ' + currentOrder + '+)';
+  updateLegend();
+}
+
+function clearSelection() {
+  selectedCatId = null;
+  if (highlightLayer) { map.removeLayer(highlightLayer); highlightLayer = null; }
+  buildStreamLayer();
+  buildCatchmentLayer();
+  updateLayers();
+  document.getElementById('selectedInfo').style.display = 'none';
+  updateLegend();
+}
+
+function setOrder(order) {
+  currentOrder = order;
+  document.getElementById('btnOrder2').classList.toggle('active', order === 2);
+  document.getElementById('btnOrder3').classList.toggle('active', order === 3);
+  clearSelection();
+
+  document.getElementById('statOrder').textContent = order + '+';
+  var sc = order === 2 ? bullerMeta.streams2_count : bullerMeta.streams3_count;
+  var cc = order === 2 ? bullerMeta.catch2_count : bullerMeta.catch3_count;
+  document.getElementById('statStreams').textContent = sc.toLocaleString();
+  document.getElementById('statCatchments').textContent = cc.toLocaleString();
+
+  buildStreamLayer();
+  buildCatchmentLayer();
+  updateLayers();
+  updateLegend();
+}
+
+function updateLayers() {
+  if (streamLayerGroup) {
+    if (document.getElementById('chkStreams').checked) {
+      if (!map.hasLayer(streamLayerGroup)) streamLayerGroup.addTo(map);
+    } else {
+      if (map.hasLayer(streamLayerGroup)) map.removeLayer(streamLayerGroup);
+    }
+  }
+  if (catchmentLayerGroup) {
+    if (document.getElementById('chkCatchments').checked) {
+      if (!map.hasLayer(catchmentLayerGroup)) catchmentLayerGroup.addTo(map);
+    } else {
+      if (map.hasLayer(catchmentLayerGroup)) map.removeLayer(catchmentLayerGroup);
+    }
+  }
+  if (highlightLayer) {
+    if (!map.hasLayer(highlightLayer)) highlightLayer.addTo(map);
+  }
+}
+
+var legendControl = L.control({ position: 'bottomleft' });
+legendControl.onAdd = function() {
+  var div = L.DomUtil.create('div', 'legend');
+  div.id = 'legendDiv';
+  return div;
+};
+legendControl.addTo(map);
+
+function updateLegend() {
+  var div = document.getElementById('legendDiv');
+  var html = '<div class="legend-title">Buller River Network</div>';
+  html += '<div class="legend-item"><span class="legend-line" style="background:#1a5276"></span> Stream reach (Order ' + currentOrder + '+)</div>';
+  html += '<div class="legend-item"><span class="legend-swatch" style="background:rgba(26,82,118,0.15);border:1px solid #555"></span> Sub-catchment</div>';
+  if (selectedCatId !== null) {
+    html += '<div class="legend-item"><span class="legend-swatch" style="background:rgba(231,76,60,0.45);border:1px solid #e74c3c"></span> Selected catchment</div>';
+  }
+  div.innerHTML = html;
+}
+
+setOrder(2);
+</script>
+</body>
+</html>

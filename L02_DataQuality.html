@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L02 Demo: Data Quality & Ethics — Quality Impact Explorer</title>
+<link rel="stylesheet" href="lib/leaflet/leaflet.css" />
+<script src="lib/leaflet/leaflet.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; height: 100vh; display: flex; flex-direction: column; background: #f5f5f5; }
+
+  .header { background: linear-gradient(135deg, #1a5276, #2980b9); color: white; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 1.2em; font-weight: 600; }
+  .header .subtitle { font-size: 0.85em; opacity: 0.9; }
+  .header .badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-size: 0.8em; }
+
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  #map { flex: 1; min-width: 0; }
+
+  .panel { width: 380px; background: white; overflow-y: auto; border-left: 2px solid #e0e0e0; display: flex; flex-direction: column; }
+  .panel-header { background: #2c3e50; color: white; padding: 16px; text-align: center; }
+  .panel-header h2 { font-size: 1.1em; margin-bottom: 4px; }
+  .panel-header p { font-size: 0.8em; opacity: 0.8; }
+
+  .control-section { padding: 16px; border-bottom: 1px solid #eee; }
+  .control-section h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .layer-toggle { display: flex; align-items: center; padding: 6px 0; cursor: pointer; }
+  .layer-toggle input { margin-right: 10px; transform: scale(1.2); cursor: pointer; }
+  .layer-toggle .swatch { width: 20px; height: 14px; border-radius: 3px; margin-right: 8px; border: 1px solid #ccc; display: inline-block; }
+  .layer-toggle label { font-size: 0.9em; cursor: pointer; flex: 1; }
+
+  .slider-container { padding: 8px 0; }
+  .slider-container input[type=range] { width: 100%; margin: 8px 0; }
+  .slider-label { display: flex; justify-content: space-between; font-size: 0.8em; color: #555; }
+  .slider-value { font-size: 1.1em; font-weight: bold; color: #c0392b; text-align: center; margin: 4px 0; }
+
+  .question-section { padding: 16px; flex: 1; }
+  .question-section h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .question { background: #f8f9fa; border-left: 4px solid #2980b9; padding: 12px; margin-bottom: 12px; border-radius: 0 6px 6px 0; }
+  .question .q-number { font-weight: 700; color: #2980b9; font-size: 0.85em; }
+  .question p { font-size: 0.88em; color: #333; margin-top: 4px; line-height: 1.5; }
+
+  .info-box { background: #eaf2f8; border: 1px solid #2980b9; border-radius: 6px; padding: 12px; margin: 12px 16px; font-size: 0.85em; line-height: 1.5; }
+  .info-box strong { color: #1a5276; }
+
+  .footer-note { padding: 12px 16px; background: #f0f0f0; font-size: 0.75em; color: #888; text-align: center; border-top: 1px solid #ddd; }
+
+  .stat-row { display: flex; gap: 8px; padding: 8px 16px; background: #f8f9fa; border-bottom: 1px solid #eee; flex-wrap: wrap; }
+  .stat { background: white; border: 1px solid #ddd; border-radius: 4px; padding: 4px 8px; font-size: 0.75em; }
+  .stat .val { font-weight: 700; color: #c0392b; }
+
+  .legend-row { display: flex; align-items: center; gap: 8px; font-size: 0.8em; margin-top: 4px; }
+  .legend-swatch { width: 24px; height: 12px; border-radius: 2px; display: inline-block; }
+  .basemap-tiles { filter: saturate(0.25) brightness(1.12) contrast(0.9); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>ENCN205 — Lecture 02: Data Quality &amp; Ethics</h1>
+    <div class="subtitle">Interactive Demo: Quality Impact Explorer — New Brighton, Christchurch</div>
+  </div>
+  <div class="badge">~10 min activity</div>
+</div>
+
+<div class="main">
+  <div id="map"></div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Quality Impact Explorer</h2>
+      <p>See how data quality problems affect flood risk analysis</p>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat">Elev. precision: <span class="val" id="statPrec">1m</span></div>
+      <div class="stat">Pos. error: <span class="val" id="statErr">0m</span></div>
+      <div class="stat">Sea level: <span class="val" id="statSL">Off</span></div>
+    </div>
+
+    <div class="control-section">
+      <h3>Elevation Precision</h3>
+      <div class="slider-value" id="precValue">1m (exact)</div>
+      <div class="slider-container">
+        <input type="range" id="precSlider" min="0" max="2" value="0" step="1">
+        <div class="slider-label">
+          <span>1m</span><span>2m</span><span>5m</span>
+        </div>
+      </div>
+      <div class="legend-row">
+        <span class="legend-swatch" style="background:rgba(52,152,219,0.35); border:1px solid #2471a3;"></span><span>True flood zone</span>
+        <span class="legend-swatch" style="background:none; border:2px dashed #8e44ad;"></span><span>Rounded-elev zone</span>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <h3>Positional Error (Buildings)</h3>
+      <div class="slider-value" id="errValue">0m (no error)</div>
+      <div class="slider-container">
+        <input type="range" id="errSlider" min="0" max="4" value="0" step="1">
+        <div class="slider-label">
+          <span>0m</span><span>10m</span><span>50m</span><span>100m</span><span>200m</span>
+        </div>
+      </div>
+      <div class="legend-row">
+        <span class="legend-swatch" style="background:rgba(230,126,34,0.5); border:1px solid #e67e22;"></span><span>True position</span>
+        <span class="legend-swatch" style="background:rgba(231,76,60,0.7); border:1px solid #c0392b;"></span><span>With error</span>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <h3>Sea Level Scenario</h3>
+      <div class="slider-value" id="slrValue">Off</div>
+      <div class="slider-container">
+        <input type="range" id="slrSlider" min="0" max="3" value="0" step="1">
+        <div class="slider-label">
+          <span>Off</span><span>1m</span><span>2m</span><span>3m</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <h3>Map Layers</h3>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkCoastline" checked>
+        <span class="swatch" style="background:#27ae60;"></span>
+        <label for="chkCoastline">Coastline</label>
+      </div>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkRoads">
+        <span class="swatch" style="background:#7f8c8d;"></span>
+        <label for="chkRoads">Roads</label>
+      </div>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkBuildings">
+        <span class="swatch" style="background:#e67e22;"></span>
+        <label for="chkBuildings">Buildings (with error)</label>
+      </div>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkMarae">
+        <span class="swatch" style="background:#e91e63;"></span>
+        <label for="chkMarae">Marae locations</label>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <strong>Case Study:</strong> New Brighton sits on low-lying land east of Christchurch.
+      Flood risk decisions depend on elevation data quality — a 1m precision error can shift
+      a flood boundary by hundreds of metres on flat coastal terrain. Building positions must
+      also be accurate to correctly identify at-risk properties.
+    </div>
+
+    <div class="question-section">
+      <h3>Guided Questions</h3>
+
+      <div class="question">
+        <span class="q-number">Q1</span>
+        <p>Move the <strong>Elevation Precision</strong> slider from 1m to 5m. How does the flood zone boundary change? What does this tell you about how data resolution affects analysis?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q2</span>
+        <p>Add <strong>positional error</strong> to the buildings. At what level of error do buildings start appearing in the wrong flood zone? Would this error matter for a resource consent decision?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q3</span>
+        <p>Look at the <strong>marae locations</strong> on the map. Why might publishing the exact coordinates of these cultural sites raise ethical concerns? How does this relate to <em>Te Mana Raraunga</em> (Maori Data Sovereignty)?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q4</span>
+        <p>You receive a shapefile of flood extents from 2005. The description says "1m resolution, NZGD2000 datum." Using the <strong>fitness-for-purpose</strong> test, is this dataset suitable for planning new housing in 2025? List three concerns.</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q5</span>
+        <p>The error propagation formula shows that combining two datasets with 10% error each gives approximately 14% error. If the elevation data has <strong>±0.5m</strong> accuracy and the sea level projection has <strong>±0.3m</strong> uncertainty, what is the approximate combined uncertainty for the flood boundary?</p>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      ENCN205 Applied Data Analysis — GIS Component, University of Canterbury | Data: LINZ, Stats NZ
+    </div>
+  </div>
+</div>
+
+<!-- Data files -->
+<script src="data/study_area.js"></script>
+<script src="data/coastline.js"></script>
+<script src="data/roads.js"></script>
+<script src="data/contours.js"></script>
+<script src="data/buildings.js"></script>
+<script src="data/marae.js"></script>
+<script src="data/flood_zones.js"></script>
+
+<script>
+// ── Map Setup ────────────────────────────────────────────────────────────────
+var map = L.map('map', { zoomControl: true, attributionControl: true });
+
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors', maxZoom: 19,
+  className: 'basemap-tiles'
+}).addTo(map);
+
+map.fitBounds(studyArea.bounds);
+
+// ── Static Layers ─────────────────────────────────────────────────────────────
+var coastlineLayer = L.geoJSON(coastlineData, {
+  style: { color: '#27ae60', weight: 2, fillColor: '#a8e6cf', fillOpacity: 0.5 }
+}).addTo(map);
+
+var roadsLayer = L.geoJSON(roadsData, {
+  style: { color: '#7f8c8d', weight: 1.5, opacity: 0.8 },
+  onEachFeature: function(f, layer) {
+    layer.bindPopup('<b>Road:</b> ' + (f.properties.name || 'Unnamed'));
+  }
+});
+
+var maraeIcon = L.divIcon({
+  html: '<div style="background:#e91e63;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.5);"></div>',
+  className: '', iconSize: [14, 14], iconAnchor: [7, 7]
+});
+
+var maraeLayer = L.geoJSON(maraeData, {
+  pointToLayer: function(f, latlng) { return L.marker(latlng, {icon: maraeIcon}); },
+  onEachFeature: function(f, layer) {
+    var name = f.properties.Name || f.properties.name || 'Marae';
+    layer.bindPopup('<b>Marae:</b> ' + name + '<br><small>Approx. location only</small>');
+  }
+});
+
+// ── Flood Zone Rendering ─────────────────────────────────────────────────────
+var floodLayerTrue = null;
+var floodLayerRounded = null;
+
+var precValues  = [1, 2, 5];
+var precLabels  = ['1m (exact)', '2m', '5m'];
+var slrLevels   = [0, 1.0, 2.0, 3.0];
+var errValues   = [0, 10, 50, 100, 200];
+var errLabels   = ['0m (no error)', '10m (GPS grade)', '50m (sketch map)', '100m', '200m (aerial estimate)'];
+
+var currentPrec = 1;
+var currentSLR  = 0;
+var currentErr  = 0;
+
+function updateFloodZones() {
+  if (floodLayerTrue)    { map.removeLayer(floodLayerTrue);    floodLayerTrue = null; }
+  if (floodLayerRounded) { map.removeLayer(floodLayerRounded); floodLayerRounded = null; }
+
+  var slrVal = slrLevels[currentSLR];
+  if (slrVal === 0) return;
+
+  // True flood zone — from precomputed flood_zones data
+  var key = slrVal.toFixed(1).replace('.', '_');
+  var data = floodZonesData[key];
+  if (data) {
+    floodLayerTrue = L.geoJSON(data, {
+      style: { color: '#2471a3', weight: 1.5, fillColor: '#3498db', fillOpacity: 0.35 }
+    }).addTo(map);
+  }
+
+  // Uncertainty zone from elevation precision
+  // With precision P, the flood boundary is uncertain by ±P/2
+  // Show the "worst case" flood zone at slrVal + P/2 (larger area)
+  if (currentPrec > 1) {
+    var worstLevel = Math.min(slrVal + Math.ceil(currentPrec / 2), 4);
+    if (worstLevel > slrVal) {
+      var worstKey = worstLevel.toFixed(1).replace('.', '_');
+      var worstData = floodZonesData[worstKey];
+      if (worstData) {
+        floodLayerRounded = L.geoJSON(worstData, {
+          style: { color: '#8e44ad', weight: 2.5, dashArray: '6,4', fillColor: '#8e44ad', fillOpacity: 0.12 }
+        }).addTo(map);
+      }
+    }
+  }
+}
+
+// ── Buildings with Positional Error ─────────────────────────────────────────
+var buildingsOrigLayer = null;
+var buildingsErrLayer  = null;
+
+// Sample buildings evenly across the dataset for performance
+var buildingSample = null;
+function getBuildingSample() {
+  if (buildingSample) return buildingSample;
+  var all = buildingsData.features;
+  var step = Math.max(1, Math.floor(all.length / 800));
+  var feats = [];
+  for (var i = 0; i < all.length; i += step) feats.push(all[i]);
+  buildingSample = { type: 'FeatureCollection', features: feats };
+  return buildingSample;
+}
+
+function shiftCoord(coord, errMetres) {
+  // 1 degree lat/lng ≈ 111000m at NZ latitudes
+  var degErr = errMetres / 111000;
+  var dx = (Math.random() - 0.5) * 2 * degErr;
+  var dy = (Math.random() - 0.5) * 2 * degErr;
+  if (Array.isArray(coord[0])) {
+    return coord.map(function(c) { return shiftCoord(c, errMetres); });
+  }
+  return [coord[0] + dx, coord[1] + dy];
+}
+
+function shiftGeometry(geom, errMetres) {
+  // Apply same shift to entire building (shift centroid, not each vertex)
+  var degErr = errMetres / 111000;
+  var dx = (Math.random() - 0.5) * 2 * degErr;
+  var dy = (Math.random() - 0.5) * 2 * degErr;
+  function shiftCoords(coords) {
+    if (typeof coords[0] === 'number') return [coords[0] + dx, coords[1] + dy];
+    return coords.map(shiftCoords);
+  }
+  return { type: geom.type, coordinates: shiftCoords(geom.coordinates) };
+}
+
+function updateBuildings() {
+  if (buildingsOrigLayer) { map.removeLayer(buildingsOrigLayer); buildingsOrigLayer = null; }
+  if (buildingsErrLayer)  { map.removeLayer(buildingsErrLayer);  buildingsErrLayer  = null; }
+
+  if (!document.getElementById('chkBuildings').checked) return;
+
+  var sample = getBuildingSample();
+
+  buildingsOrigLayer = L.geoJSON(sample, {
+    style: { color: '#e67e22', weight: 1, fillColor: '#e67e22', fillOpacity: 1 }
+  }).addTo(map);
+
+  if (currentErr > 0) {
+    // Create shifted version
+    var shiftedFeatures = sample.features.map(function(f) {
+      return {
+        type: 'Feature',
+        properties: f.properties,
+        geometry: shiftGeometry(f.geometry, currentErr)
+      };
+    });
+    buildingsErrLayer = L.geoJSON({type:'FeatureCollection', features: shiftedFeatures}, {
+      style: { color: '#c0392b', weight: 0.5, fillColor: '#e74c3c', fillOpacity: 0.6 }
+    }).addTo(map);
+  }
+}
+
+// ── Layer Toggles ─────────────────────────────────────────────────────────────
+document.getElementById('chkCoastline').addEventListener('change', function() {
+  if (this.checked) map.addLayer(coastlineLayer); else map.removeLayer(coastlineLayer);
+});
+document.getElementById('chkRoads').addEventListener('change', function() {
+  if (this.checked) map.addLayer(roadsLayer); else map.removeLayer(roadsLayer);
+});
+document.getElementById('chkBuildings').addEventListener('change', function() {
+  updateBuildings();
+});
+document.getElementById('chkMarae').addEventListener('change', function() {
+  if (this.checked) map.addLayer(maraeLayer); else map.removeLayer(maraeLayer);
+});
+
+// ── Slider Events ─────────────────────────────────────────────────────────────
+document.getElementById('precSlider').addEventListener('input', function() {
+  var idx = parseInt(this.value);
+  currentPrec = precValues[idx];
+  document.getElementById('precValue').textContent = precLabels[idx];
+  document.getElementById('statPrec').textContent = precValues[idx] + 'm';
+  updateFloodZones();
+});
+
+document.getElementById('errSlider').addEventListener('input', function() {
+  var idx = parseInt(this.value);
+  currentErr = errValues[idx];
+  document.getElementById('errValue').textContent = errLabels[idx];
+  document.getElementById('statErr').textContent = errValues[idx] + 'm';
+  updateBuildings();
+});
+
+document.getElementById('slrSlider').addEventListener('input', function() {
+  var idx = parseInt(this.value);
+  currentSLR = idx;
+  var label = idx === 0 ? 'Off' : slrLevels[idx] + 'm sea level';
+  document.getElementById('slrValue').textContent = idx === 0 ? 'Off' : slrLevels[idx] + 'm';
+  document.getElementById('statSL').textContent = idx === 0 ? 'Off' : slrLevels[idx] + 'm';
+  updateFloodZones();
+});
+</script>
+</body>
+</html>

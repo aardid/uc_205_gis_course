@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L01 Demo: Why Location Matters — Layer Explorer</title>
+<link rel="stylesheet" href="lib/leaflet/leaflet.css" />
+<script src="lib/leaflet/leaflet.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; height: 100vh; display: flex; flex-direction: column; background: #f5f5f5; }
+
+  .header { background: linear-gradient(135deg, #1a5276, #2980b9); color: white; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 1.2em; font-weight: 600; }
+  .header .subtitle { font-size: 0.85em; opacity: 0.9; }
+  .header .badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-size: 0.8em; }
+
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  #map { flex: 1; min-width: 0; }
+
+  .panel { width: 380px; background: white; overflow-y: auto; border-left: 2px solid #e0e0e0; display: flex; flex-direction: column; }
+  .panel-header { background: #2c3e50; color: white; padding: 16px; text-align: center; }
+  .panel-header h2 { font-size: 1.1em; margin-bottom: 4px; }
+  .panel-header p { font-size: 0.8em; opacity: 0.8; }
+
+  .control-section { padding: 16px; border-bottom: 1px solid #eee; }
+  .control-section h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .layer-toggle { display: flex; align-items: center; padding: 6px 0; cursor: pointer; }
+  .layer-toggle input { margin-right: 10px; transform: scale(1.2); cursor: pointer; }
+  .layer-toggle .swatch { width: 20px; height: 14px; border-radius: 3px; margin-right: 8px; border: 1px solid #ccc; display: inline-block; }
+  .layer-toggle label { font-size: 0.9em; cursor: pointer; flex: 1; }
+  .layer-toggle .count { font-size: 0.75em; color: #888; }
+
+  .slider-container { padding: 8px 0; }
+  .slider-container input[type=range] { width: 100%; margin: 8px 0; }
+  .slider-label { display: flex; justify-content: space-between; font-size: 0.85em; color: #555; }
+  .sea-level-value { font-size: 1.3em; font-weight: bold; color: #c0392b; text-align: center; margin: 4px 0; }
+
+  .question-section { padding: 16px; flex: 1; }
+  .question-section h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .question { background: #f8f9fa; border-left: 4px solid #2980b9; padding: 12px; margin-bottom: 12px; border-radius: 0 6px 6px 0; }
+  .question .q-number { font-weight: 700; color: #2980b9; font-size: 0.85em; }
+  .question p { font-size: 0.88em; color: #333; margin-top: 4px; line-height: 1.5; }
+
+  .info-box { background: #eaf2f8; border: 1px solid #2980b9; border-radius: 6px; padding: 12px; margin: 12px 16px; font-size: 0.85em; line-height: 1.5; }
+  .info-box strong { color: #1a5276; }
+
+  .footer-note { padding: 12px 16px; background: #f0f0f0; font-size: 0.75em; color: #888; text-align: center; border-top: 1px solid #ddd; }
+
+  .stats-bar { display: flex; gap: 8px; padding: 8px 16px; background: #f8f9fa; border-bottom: 1px solid #eee; flex-wrap: wrap; }
+  .stat { background: white; border: 1px solid #ddd; border-radius: 4px; padding: 4px 8px; font-size: 0.75em; }
+  .stat .val { font-weight: 700; color: #2980b9; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>ENCN205 — Lecture 01: Why Location Matters</h1>
+    <div class="subtitle">Interactive Demo: Layer Explorer — New Brighton, Christchurch</div>
+  </div>
+  <div class="badge">~10 min activity</div>
+</div>
+
+<div class="main">
+  <div id="map"></div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Layer Explorer</h2>
+      <p>Toggle GIS layers to explore how spatial data combines to inform engineering decisions</p>
+    </div>
+
+    <div class="stats-bar" id="statsBar">
+      <div class="stat">Layers: <span class="val" id="layerCount">0</span>/<span id="layerTotal">6</span></div>
+      <div class="stat">Buildings: <span class="val" id="buildingCount">—</span></div>
+      <div class="stat">Roads: <span class="val" id="roadCount">—</span></div>
+      <div class="stat">Flood area: <span class="val" id="floodArea">—</span></div>
+    </div>
+
+    <div class="control-section">
+      <h3>Map Layers</h3>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkCoastline" checked>
+        <span class="swatch" style="background:#27ae60;"></span>
+        <label for="chkCoastline">Coastline</label>
+      </div>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkRoads">
+        <span class="swatch" style="background:#7f8c8d;"></span>
+        <label for="chkRoads">Roads</label>
+      </div>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkContours">
+        <span class="swatch" style="background:#8e44ad; opacity:0.6;"></span>
+        <label for="chkContours">Elevation Contours</label>
+      </div>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkBuildings">
+        <span class="swatch" style="background:#e67e22;"></span>
+        <label for="chkBuildings">Buildings</label>
+      </div>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkMarae">
+        <span class="swatch" style="background:#e91e63;"></span>
+        <label for="chkMarae">Marae</label>
+      </div>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkStructures">
+        <span class="swatch" style="background:#f39c12;"></span>
+        <label for="chkStructures">Structures</label>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <h3>Sea Level Rise Scenario</h3>
+      <div class="sea-level-value" id="slrValue">Off</div>
+      <div class="slider-container">
+        <input type="range" id="slrSlider" min="0" max="4" value="0" step="1">
+        <div class="slider-label">
+          <span>Off</span>
+          <span>1m</span>
+          <span>2m</span>
+          <span>3m</span>
+          <span>4m</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <strong>Case Study:</strong> New Brighton sits on a low-lying coastal strip east of Christchurch.
+      This area faces real risks from sea level rise and coastal flooding.
+      The data layers you see here are from LINZ and represent real infrastructure.
+    </div>
+
+    <div class="question-section">
+      <h3>Guided Questions</h3>
+
+      <div class="question">
+        <span class="q-number">Q1</span>
+        <p>Turn on all layers one at a time. What type of geometry does each layer use — <strong>point, line, or polygon</strong>?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q2</span>
+        <p>Turn on the <strong>sea level slider to 2m</strong>. Which layers would you need to determine how many <strong>buildings are at risk</strong> of flooding?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q3</span>
+        <p>Set sea level to <strong>1m, then 3m</strong>. Describe how the flood extent changes. Is the relationship between sea level and flooded area <strong>linear</strong>?</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q4</span>
+        <p>A council engineer needs to plan <strong>evacuation routes</strong> for a coastal flood event. Name <strong>three layers</strong> from this map they would need, and explain why each matters.</p>
+      </div>
+
+      <div class="question">
+        <span class="q-number">Q5</span>
+        <p>What is <strong>missing</strong> from this map that would be important for a full flood risk assessment? Name at least <strong>two additional data layers</strong> you would want.</p>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      ENCN205 Applied Data Analysis — GIS Component<br>
+      University of Canterbury | Data: LINZ, Stats NZ
+    </div>
+  </div>
+</div>
+
+<!-- Data files -->
+<script src="data/study_area.js"></script>
+<script src="data/coastline.js"></script>
+<script src="data/roads.js"></script>
+<script src="data/contours.js"></script>
+<script src="data/buildings.js"></script>
+<script src="data/marae.js"></script>
+<script src="data/structures.js"></script>
+<script src="data/flood_zones.js"></script>
+
+<script>
+// ── Map Setup ────────────────────────────────────────────────────────────────
+var map = L.map('map', {
+  zoomControl: true,
+  attributionControl: true
+});
+
+// Basemap tiles
+var osmBase = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors',
+  maxZoom: 18
+}).addTo(map);
+
+var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  attribution: '&copy; Esri',
+  maxZoom: 18
+});
+
+L.control.layers({'Street Map': osmBase, 'Satellite': satellite}, null, {position: 'topright'}).addTo(map);
+
+// Fit to study area
+map.fitBounds(studyArea.bounds);
+
+// ── Layer Styles ─────────────────────────────────────────────────────────────
+var coastlineLayer = L.geoJSON(coastlineData, {
+  style: { color: '#27ae60', weight: 2, fillColor: '#a8e6cf', fillOpacity: 0.3 },
+  onEachFeature: function(f, layer) { layer.bindPopup('<b>Coastline</b><br>Source: LINZ'); }
+}).addTo(map);
+
+var roadsLayer = L.geoJSON(roadsData, {
+  style: { color: '#7f8c8d', weight: 1.5, opacity: 0.8 },
+  onEachFeature: function(f, layer) {
+    var name = f.properties.name || 'Unnamed road';
+    layer.bindPopup('<b>Road:</b> ' + name);
+  }
+});
+
+var contourColors = function(elev) {
+  if (elev <= 2) return '#7b241c';
+  if (elev <= 5) return '#c0392b';
+  if (elev <= 10) return '#e67e22';
+  if (elev <= 20) return '#f1c40f';
+  return '#82e0aa';
+};
+
+var contoursLayer = L.geoJSON(contoursData, {
+  style: function(f) {
+    var elev = f.properties.elevation || 0;
+    return { color: contourColors(elev), weight: 1, fillColor: contourColors(elev), fillOpacity: 0.25 };
+  },
+  onEachFeature: function(f, layer) {
+    layer.bindPopup('<b>Elevation:</b> ' + (f.properties.elevation || '?') + ' m');
+  }
+});
+
+var buildingsLayer = L.geoJSON(buildingsData, {
+  renderer: L.canvas(),  // 41k+ polygons: canvas avoids one SVG node per building
+  style: { color: '#e67e22', weight: 0.5, fillColor: '#e67e22', fillOpacity: 0.5 },
+  onEachFeature: function(f, layer) { layer.bindPopup('<b>Building</b>'); }
+});
+
+var maraeIcon = L.divIcon({
+  html: '<div style="background:#e91e63;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>',
+  className: '', iconSize: [14, 14], iconAnchor: [7, 7]
+});
+
+var maraeLayer = L.geoJSON(maraeData, {
+  pointToLayer: function(f, latlng) { return L.marker(latlng, {icon: maraeIcon}); },
+  onEachFeature: function(f, layer) {
+    var name = f.properties.Name || f.properties.name || 'Marae';
+    layer.bindPopup('<b>Marae:</b> ' + name);
+  }
+});
+
+var structuresLayer = null;
+if (typeof structuresData !== 'undefined') {
+  structuresLayer = L.geoJSON(structuresData, {
+    pointToLayer: function(f, latlng) {
+      // Points (Transpower pylons) — circle markers matching the legend swatch
+      return L.circleMarker(latlng, { radius: 5, color: '#f39c12', weight: 2, fillColor: '#f39c12', fillOpacity: 0.4 });
+    },
+    style: { color: '#f39c12', weight: 2, fillColor: '#f39c12', fillOpacity: 0.4 },
+    onEachFeature: function(f, layer) {
+      var desc = f.properties.LongType || f.properties.descriptio || 'Structure';
+      layer.bindPopup('<b>Structure:</b> ' + desc + '<br><small>Transpower transmission network</small>');
+    }
+  });
+}
+
+// ── Flood Zone Layer ─────────────────────────────────────────────────────────
+var floodLayer = null;
+var slrLevels = [0, 1.0, 2.0, 3.0, 4.0];
+
+function updateFloodZone(sliderVal) {
+  if (floodLayer) { map.removeLayer(floodLayer); floodLayer = null; }
+
+  if (sliderVal === 0) {
+    document.getElementById('slrValue').textContent = 'Off';
+    document.getElementById('floodArea').textContent = '—';
+    return;
+  }
+
+  var level = slrLevels[sliderVal];
+  var key = level.toFixed(1).replace('.', '_');
+  var data = floodZonesData[key];
+
+  if (data) {
+    floodLayer = L.geoJSON(data, {
+      style: { color: '#2471a3', weight: 1.5, fillColor: '#3498db', fillOpacity: 0.35 },
+      onEachFeature: function(f, layer) {
+        layer.bindPopup('<b>Flood Zone</b><br>Sea level: +' + level + 'm');
+      }
+    }).addTo(map);
+  }
+
+  document.getElementById('slrValue').textContent = '+' + level + 'm sea level';
+
+  // True flooded areas (km²) from the notebook analysis, keyed by data level.
+  // Level 4 has no computed value — shown as an explicit extrapolation, never
+  // a fitted model (the 1→2m jump is real and non-linear).
+  var floodAreas = {1: '0.06 km²', 2: '2.39 km²', 3: '3.33 km²', 4: '≈4.3 km² (extrapolated)'};
+  document.getElementById('floodArea').textContent = floodAreas[level] || '—';
+}
+
+// ── Layer Toggle Logic ───────────────────────────────────────────────────────
+var layerMap = {
+  chkCoastline: coastlineLayer,
+  chkRoads: roadsLayer,
+  chkContours: contoursLayer,
+  chkBuildings: buildingsLayer,
+  chkMarae: maraeLayer,
+  chkStructures: structuresLayer
+};
+
+function updateStats() {
+  var active = 0;
+  Object.keys(layerMap).forEach(function(id) {
+    if (document.getElementById(id).checked) active++;
+  });
+  var total = 6;
+  if (floodLayer) { active++; total++; }  // flood layer counts in both numerator and denominator
+  document.getElementById('layerCount').textContent = active;
+  document.getElementById('layerTotal').textContent = total;
+
+  document.getElementById('buildingCount').textContent =
+    document.getElementById('chkBuildings').checked ? buildingsData.features.length.toLocaleString() : '—';
+  document.getElementById('roadCount').textContent =
+    document.getElementById('chkRoads').checked ? roadsData.features.length + ' segments' : '—';
+}
+
+Object.keys(layerMap).forEach(function(id) {
+  document.getElementById(id).addEventListener('change', function() {
+    var layer = layerMap[id];
+    if (!layer) return;
+    if (this.checked) { map.addLayer(layer); }
+    else { map.removeLayer(layer); }
+    updateStats();
+  });
+});
+
+document.getElementById('slrSlider').addEventListener('input', function() {
+  updateFloodZone(parseInt(this.value));
+  updateStats();
+});
+
+// Initial stats
+updateStats();
+</script>
+</body>
+</html>

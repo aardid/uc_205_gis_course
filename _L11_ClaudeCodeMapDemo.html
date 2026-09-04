@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L11 Demo: The Future of GIS — Flood Exposure Map (built with Claude Code)</title>
+<link rel="stylesheet" href="lib/leaflet/leaflet.css" />
+<script src="lib/leaflet/leaflet.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; height: 100vh; display: flex; flex-direction: column; background: #f5f5f5; }
+
+  .header { background: linear-gradient(135deg, #0f3460, #00b4d8); color: white; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 1.2em; font-weight: 600; }
+  .header .subtitle { font-size: 0.85em; opacity: 0.9; }
+  .header .badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-size: 0.8em; }
+
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  #map { flex: 1; min-width: 0; }
+  #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.2); font-size: 0.95em; color: #0f3460; z-index: 1000; }
+
+  .panel { width: 380px; background: white; overflow-y: auto; border-left: 2px solid #e0e0e0; display: flex; flex-direction: column; }
+  .panel-header { background: #1a1a2e; color: white; padding: 16px; text-align: center; }
+  .panel-header h2 { font-size: 1.1em; margin-bottom: 4px; }
+  .panel-header p { font-size: 0.8em; opacity: 0.8; }
+
+  .stats-bar { display: flex; gap: 8px; padding: 10px 16px; background: #f8f9fa; border-bottom: 1px solid #eee; flex-wrap: wrap; }
+  .stat { background: white; border: 1px solid #ddd; border-radius: 4px; padding: 5px 9px; font-size: 0.78em; }
+  .stat .val { font-weight: 700; color: #0f3460; }
+  .stat .val.exposed { color: #dc3545; }
+
+  .control-section { padding: 16px; border-bottom: 1px solid #eee; }
+  .control-section h3 { font-size: 0.9em; color: #1a1a2e; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .layer-toggle { display: flex; align-items: center; padding: 6px 0; cursor: pointer; }
+  .layer-toggle input { margin-right: 10px; transform: scale(1.2); cursor: pointer; }
+  .layer-toggle .swatch { width: 20px; height: 14px; border-radius: 3px; margin-right: 8px; border: 1px solid #ccc; display: inline-block; }
+  .layer-toggle label { font-size: 0.9em; cursor: pointer; flex: 1; }
+
+  .slider-container { padding: 8px 0; }
+  .slider-container input[type=range] { width: 100%; margin: 8px 0; }
+  .slider-label { display: flex; justify-content: space-between; font-size: 0.8em; color: #555; }
+  .slr-value { font-size: 1.35em; font-weight: bold; color: #dc3545; text-align: center; margin: 4px 0; }
+
+  .legend { padding: 12px 16px; font-size: 0.85em; }
+  .legend-item { display: flex; align-items: center; margin-bottom: 6px; }
+  .legend-swatch { width: 16px; height: 16px; border-radius: 3px; margin-right: 8px; display: inline-block; border: 1px solid rgba(0,0,0,0.15); }
+  .legend-line { width: 20px; height: 0; border-top: 2px dashed #0f3460; margin-right: 8px; }
+
+  .info-box { background: #e8f0fe; border: 1px solid #0f3460; border-radius: 6px; padding: 12px; margin: 12px 16px; font-size: 0.83em; line-height: 1.5; }
+  .info-box strong { color: #0f3460; }
+
+  .footer-note { padding: 12px 16px; background: #f0f0f0; font-size: 0.72em; color: #888; text-align: center; border-top: 1px solid #ddd; margin-top: auto; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>ENCN205 — Lecture 11: The Future of GIS</h1>
+    <div class="subtitle">Built live with Claude Code — Flood Exposure Map, New Brighton</div>
+  </div>
+  <div class="badge">Reference build</div>
+</div>
+
+<div class="main">
+  <div id="map"><div id="loading">Analysing building exposure…</div></div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Flood Exposure Explorer</h2>
+      <p>Buildings are recoloured live as the sea-level scenario changes</p>
+    </div>
+
+    <div class="stats-bar" id="statsBar">
+      <div class="stat">Buildings: <span class="val" id="totalCount">—</span></div>
+      <div class="stat">Exposed: <span class="val exposed" id="exposedCount">—</span></div>
+      <div class="stat">% Exposed: <span class="val exposed" id="exposedPct">—</span></div>
+    </div>
+
+    <div class="control-section">
+      <h3>Sea Level Rise Scenario</h3>
+      <div class="slr-value" id="slrValue">1.0 m</div>
+      <div class="slider-container">
+        <input type="range" id="slrSlider" min="0" max="6" value="0" step="1">
+        <div class="slider-label">
+          <span>1.0m</span>
+          <span>2.5m</span>
+          <span>4.0m</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <h3>Map Layers</h3>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkCoastline" checked>
+        <span class="swatch" style="background:#27ae60;"></span>
+        <label for="chkCoastline">Coastline</label>
+      </div>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkRoads">
+        <span class="swatch" style="background:#7f8c8d;"></span>
+        <label for="chkRoads">Roads</label>
+      </div>
+      <div class="layer-toggle">
+        <input type="checkbox" id="chkFlood" checked>
+        <span class="swatch" style="background:#0f3460;"></span>
+        <label for="chkFlood">Flood boundary (modelled)</label>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="legend-swatch" style="background:#dc3545;"></span> Building — exposed</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#adb5bd;"></span> Building — not exposed</div>
+      <div class="legend-item"><span class="legend-line"></span> Modelled flood boundary</div>
+    </div>
+
+    <div class="info-box">
+      <strong>How "exposed" is defined here:</strong> a building is flagged exposed if its centroid is
+      within ~150m of the modelled flood boundary for the selected sea-level scenario — a simplified
+      proxy, not a true flood-fill model. Distances are approximated in degrees→metres locally rather
+      than reprojected to NZTM (EPSG:2193), unlike the proper workflow from Lecture 4. This is exactly
+      the kind of simplification you should be checking for, not trusting blindly (Lecture 2).
+    </div>
+
+    <div class="footer-note">
+      Reference build for Lecture 11's live demo — the lecture builds this from scratch with Claude Code.<br>
+      ENCN205 Applied Data Analysis — GIS Component | Data: LINZ (New Brighton, Christchurch)
+    </div>
+  </div>
+</div>
+
+<!-- Data files -->
+<script src="data/study_area.js"></script>
+<script src="data/coastline.js"></script>
+<script src="data/roads.js"></script>
+<script src="data/buildings.js"></script>
+<script src="data/flood_zones.js"></script>
+
+<script>
+// ── Map Setup ────────────────────────────────────────────────────────────────
+// preferCanvas: with ~41k building polygons, SVG rendering (Leaflet's default) is far
+// too slow to restyle live on every slider move — Canvas rendering is what makes this workable.
+var map = L.map('map', { zoomControl: true, attributionControl: true, preferCanvas: true });
+
+var osmBase = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors', maxZoom: 18
+}).addTo(map);
+
+// The buildings/flood-boundary data covers most of urban Christchurch's coastline —
+// fitting to its full extent zooms out too far to see individual buildings, so start
+// zoomed in on New Brighton itself (studyArea's own recommended centre/zoom) instead.
+map.setView(studyArea.center, 14);
+
+// ── Static Layers ────────────────────────────────────────────────────────────
+var coastlineLayer = L.geoJSON(coastlineData, {
+  style: { color: '#27ae60', weight: 2, fillColor: '#a8e6cf', fillOpacity: 0.25 }
+}).addTo(map);
+
+var roadsLayer = L.geoJSON(roadsData, {
+  style: { color: '#7f8c8d', weight: 1.2, opacity: 0.75 }
+});
+
+// ── Local metric approximation (degrees -> metres near New Brighton) ────────
+// Simplified local scale — a real analysis would reproject to NZTM (EPSG:2193)
+// first, as covered in Lecture 4. Fine for a rough proximity check here.
+var LAT0 = studyArea.bounds ? (studyArea.bounds[0][0] + studyArea.bounds[1][0]) / 2 : -43.5;
+var M_PER_DEG_LAT = 111320;
+var M_PER_DEG_LON = 111320 * Math.cos(LAT0 * Math.PI / 180);
+
+function toMetres(lon, lat) {
+  return [lon * M_PER_DEG_LON, lat * M_PER_DEG_LAT];
+}
+
+// ── Building centroids (precomputed once) ────────────────────────────────────
+function ringCentroid(ring) {
+  var sx = 0, sy = 0;
+  for (var i = 0; i < ring.length; i++) { sx += ring[i][0]; sy += ring[i][1]; }
+  return [sx / ring.length, sy / ring.length];
+}
+
+function featureCentroidLonLat(geom) {
+  if (geom.type === 'Polygon') return ringCentroid(geom.coordinates[0]);
+  if (geom.type === 'MultiPolygon') return ringCentroid(geom.coordinates[0][0]);
+  return null;
+}
+
+var buildings = buildingsData.features;
+var centroidsM = new Float64Array(buildings.length * 2);
+for (var bi = 0; bi < buildings.length; bi++) {
+  var c = featureCentroidLonLat(buildings[bi].geometry);
+  var m = c ? toMetres(c[0], c[1]) : [NaN, NaN];
+  centroidsM[bi * 2] = m[0];
+  centroidsM[bi * 2 + 1] = m[1];
+}
+
+// ── Flood boundary segments per level, converted to metres, with bbox ───────
+var EXPOSURE_THRESHOLD_M = 150;
+var levelKeys = Object.keys(floodZonesData).sort(function(a, b) {
+  return parseFloat(a.replace('_', '.')) - parseFloat(b.replace('_', '.'));
+});
+
+function buildSegmentsM(levelKey) {
+  var fc = floodZonesData[levelKey];
+  var segs = [];
+  var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  fc.features.forEach(function(f) {
+    f.geometry.coordinates.forEach(function(line) {
+      for (var i = 0; i < line.length - 1; i++) {
+        var p1 = toMetres(line[i][0], line[i][1]);
+        var p2 = toMetres(line[i + 1][0], line[i + 1][1]);
+        segs.push([p1[0], p1[1], p2[0], p2[1]]);
+        minX = Math.min(minX, p1[0], p2[0]); maxX = Math.max(maxX, p1[0], p2[0]);
+        minY = Math.min(minY, p1[1], p2[1]); maxY = Math.max(maxY, p1[1], p2[1]);
+      }
+    });
+  });
+  return { segs: segs, bbox: [minX, minY, maxX, maxY] };
+}
+
+function distPointToSegment(px, py, x1, y1, x2, y2) {
+  var dx = x2 - x1, dy = y2 - y1;
+  var lenSq = dx * dx + dy * dy;
+  var t = lenSq === 0 ? 0 : ((px - x1) * dx + (py - y1) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  var ex = x1 + t * dx, ey = y1 + t * dy;
+  return Math.sqrt((px - ex) * (px - ex) + (py - ey) * (py - ey));
+}
+
+// Precompute an exposure flag per building per level — O(1) slider updates after this.
+var exposureByLevel = {};
+var pad = EXPOSURE_THRESHOLD_M;
+levelKeys.forEach(function(key) {
+  var built = buildSegmentsM(key);
+  var flags = new Uint8Array(buildings.length);
+  var bx0 = built.bbox[0] - pad, by0 = built.bbox[1] - pad;
+  var bx1 = built.bbox[2] + pad, by1 = built.bbox[3] + pad;
+  for (var bi = 0; bi < buildings.length; bi++) {
+    var px = centroidsM[bi * 2], py = centroidsM[bi * 2 + 1];
+    if (isNaN(px) || px < bx0 || px > bx1 || py < by0 || py > by1) continue;
+    for (var si = 0; si < built.segs.length; si++) {
+      var s = built.segs[si];
+      if (distPointToSegment(px, py, s[0], s[1], s[2], s[3]) <= EXPOSURE_THRESHOLD_M) {
+        flags[bi] = 1;
+        break;
+      }
+    }
+  }
+  exposureByLevel[key] = flags;
+});
+
+// ── Buildings layer (single GeoJSON layer, restyled on slider change) ──────
+var currentFlags = exposureByLevel[levelKeys[0]];
+
+// Tag each layer with its index into `buildings` explicitly at creation time,
+// rather than assuming eachLayer()'s iteration order matches the input array.
+var buildIndexCounter = 0;
+var buildingLayers = new Array(buildings.length);
+
+var buildingsLayer = L.geoJSON(buildingsData, {
+  style: { color: 'transparent', weight: 0, fillOpacity: 0.8 },
+  onEachFeature: function(feature, layer) {
+    var idx = buildIndexCounter++;
+    layer._bidx = idx;
+    buildingLayers[idx] = layer;
+  }
+}).addTo(map);
+
+function recolourBuildings(flags) {
+  for (var i = 0; i < buildingLayers.length; i++) {
+    var layer = buildingLayers[i];
+    if (!layer) continue;
+    var exposed = flags[i] === 1;
+    layer.setStyle({
+      color: exposed ? '#b02a37' : '#868e96',
+      weight: 0.4,
+      fillColor: exposed ? '#dc3545' : '#adb5bd',
+      fillOpacity: exposed ? 0.75 : 0.45
+    });
+  }
+}
+
+// ── Flood boundary layer ─────────────────────────────────────────────────────
+var floodLayer = null;
+function updateFloodLayer(key) {
+  if (floodLayer) { map.removeLayer(floodLayer); floodLayer = null; }
+  if (!document.getElementById('chkFlood').checked) return;
+  floodLayer = L.geoJSON(floodZonesData[key], {
+    style: { color: '#0f3460', weight: 2, dashArray: '6,4' }
+  }).addTo(map);
+}
+
+// ── Stats ────────────────────────────────────────────────────────────────────
+function updateStats(flags) {
+  var exposed = 0;
+  for (var i = 0; i < flags.length; i++) if (flags[i] === 1) exposed++;
+  document.getElementById('totalCount').textContent = buildings.length.toLocaleString();
+  document.getElementById('exposedCount').textContent = exposed.toLocaleString();
+  document.getElementById('exposedPct').textContent = ((exposed / buildings.length) * 100).toFixed(1) + '%';
+}
+
+// ── Slider wiring ────────────────────────────────────────────────────────────
+document.getElementById('slrSlider').max = levelKeys.length - 1;
+
+function applyLevel(idx) {
+  var key = levelKeys[idx];
+  var levelLabel = key.replace('_', '.') + ' m';
+  document.getElementById('slrValue').textContent = levelLabel;
+  currentFlags = exposureByLevel[key];
+  recolourBuildings(currentFlags);
+  updateFloodLayer(key);
+  updateStats(currentFlags);
+}
+
+document.getElementById('slrSlider').addEventListener('input', function() {
+  applyLevel(parseInt(this.value));
+});
+
+['chkCoastline', 'chkRoads'].forEach(function(id) {
+  var layerMap = { chkCoastline: coastlineLayer, chkRoads: roadsLayer };
+  document.getElementById(id).addEventListener('change', function() {
+    var layer = layerMap[id];
+    if (this.checked) map.addLayer(layer); else map.removeLayer(layer);
+  });
+});
+
+document.getElementById('chkFlood').addEventListener('change', function() {
+  applyLevel(parseInt(document.getElementById('slrSlider').value));
+});
+
+// ── Initial render ───────────────────────────────────────────────────────────
+document.getElementById('loading').style.display = 'none';
+applyLevel(0);
+</script>
+</body>
+</html>
