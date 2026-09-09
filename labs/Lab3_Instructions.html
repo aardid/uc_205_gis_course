@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENCN205 — Lab 3: Raster Analysis</title>
+<style>
+  :root {
+    --ink: #1e2b33;
+    --soft: #5a6b74;
+    --accent: #0f6b5e;
+    --accent-bg: #e8f2f0;
+    --hairline: #d9e1e4;
+    --warn-bg: #fdf3e0;
+    --warn-edge: #c9932e;
+    --code-bg: #eef2f3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", -apple-system, Arial, sans-serif;
+    color: var(--ink);
+    background: #f6f8f8;
+    line-height: 1.55;
+  }
+  main { max-width: 54rem; margin: 0 auto; padding: 0 1.25rem 4rem; }
+  header {
+    background: var(--accent);
+    color: #fff;
+    padding: 2rem 0 1.5rem;
+  }
+  header .inner { max-width: 54rem; margin: 0 auto; padding: 0 1.25rem; }
+  header h1 { margin: 0 0 0.3rem; font-size: 1.7rem; }
+  header p { margin: 0; opacity: 0.9; }
+  .badge {
+    display: inline-block; background: rgba(255,255,255,0.18);
+    border-radius: 999px; padding: 0.15rem 0.7rem; font-size: 0.8rem;
+    margin-bottom: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  h2 {
+    font-size: 1.25rem; margin: 2.4rem 0 0.6rem;
+    padding-top: 1.2rem; border-top: 1px solid var(--hairline);
+  }
+  h2 .step {
+    display: inline-block; background: var(--accent); color: #fff;
+    border-radius: 50%; width: 1.7rem; height: 1.7rem; line-height: 1.7rem;
+    text-align: center; font-size: 0.95rem; margin-right: 0.5rem;
+  }
+  h3 { font-size: 1.02rem; margin: 1.4rem 0 0.3rem; color: var(--accent); }
+  code, pre {
+    font-family: Consolas, "Cascadia Code", monospace;
+    background: var(--code-bg); border-radius: 4px;
+  }
+  code { padding: 0.1em 0.35em; font-size: 0.9em; }
+  pre {
+    padding: 0.8rem 1rem; overflow-x: auto;
+    border: 1px solid var(--hairline); font-size: 0.88rem;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; background: #fff; }
+  th, td { text-align: left; padding: 0.5rem 0.7rem; border: 1px solid var(--hairline); vertical-align: top; }
+  th { background: var(--accent-bg); }
+  .note {
+    background: var(--accent-bg); border-left: 4px solid var(--accent);
+    border-radius: 0 6px 6px 0; padding: 0.7rem 1rem; margin: 1rem 0;
+  }
+  .warn {
+    background: var(--warn-bg); border-left: 4px solid var(--warn-edge);
+    border-radius: 0 6px 6px 0; padding: 0.7rem 1rem; margin: 1rem 0;
+  }
+  a { color: var(--accent); }
+  .meta { color: var(--soft); font-size: 0.9rem; }
+  footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--hairline); color: var(--soft); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <div class="badge">ENCN205 · GIS Component · Lab 3</div>
+    <h1>Lab 3: Raster Analysis — Terrain, Hazards, and Catchments</h1>
+    <p>University of Canterbury · Te Whare Wānanga o Waitaha</p>
+  </div>
+</header>
+
+<main>
+
+<p class="meta"><strong>Duration:</strong> 2–3 hours &nbsp;·&nbsp;
+<strong>Format:</strong> Python (Jupyter notebook) &nbsp;·&nbsp;
+<strong>Prerequisites:</strong> Labs 1–2 &nbsp;·&nbsp;
+<strong>Assessment:</strong> sign-off quiz submitted to LEARN</p>
+
+<h2><span class="step">1</span>Learning Objectives</h2>
+
+<ul>
+  <li>Load and inspect raster data (DEMs) held as numpy arrays</li>
+  <li>Visualise elevation data with a hillshade overlay</li>
+  <li>Perform map algebra: reclassification, masking, arithmetic</li>
+  <li>Compute terrain derivatives: slope and aspect</li>
+  <li>Crop raster data using vector boundaries</li>
+  <li>Extract raster values at point locations (buildings)</li>
+  <li>Compute zonal statistics (mean elevation per zone)</li>
+  <li>Combine raster hazard data with vector building data</li>
+</ul>
+
+<h2><span class="step">2</span>Engineering Scenario</h2>
+
+<p>You are analysing terrain on <strong>Banks Peninsula</strong> for a slope stability and seismic
+hazard assessment. Using a real 8 m DEM, you will compute terrain derivatives, identify steep
+slopes on the volcanic flanks, and extract ground shaking intensities at building locations.</p>
+
+<div class="note">Start as usual: <code>conda activate encn205</code>, then <code>jupyter lab</code>,
+then open <code>Lab3_RasterAnalysis.ipynb</code> and run the cells in order with
+<strong>Shift + Enter</strong>.</div>
+
+<h2><span class="step">3</span>Step-by-Step Instructions</h2>
+
+<h3>Section 1: Setup and Raster Fundamentals</h3>
+<p>Import numpy, matplotlib, and geopandas. Understand raster fundamentals: cells, resolution,
+and extent.</p>
+
+<h3>Section 2: Loading and Inspecting the DEM</h3>
+<p>Load the Banks Peninsula DEM. Inspect its shape, resolution, and elevation range. Visualise it
+with a terrain colourmap.</p>
+
+<h3>Section 3: Hillshade — Simulating Terrain Illumination</h3>
+<p>Compute hillshade from elevation gradients. Combine the DEM and hillshade for enhanced
+visualisation, and try different sun azimuths.</p>
+
+<h3>Section 4: Map Algebra — Reclassification and Masking</h3>
+<p>Reclassify elevation into engineering-relevant classes. Create Boolean masks for flood zones.
+Calculate areas.</p>
+
+<h3>Section 5: Terrain Derivatives — Slope and Aspect</h3>
+<p>Compute slope (steepness) and aspect (direction). Identify steep slopes above a threshold and
+calculate the steep area.</p>
+
+<h3>Section 6: Cropping Rasters with Vector Boundaries</h3>
+<p>Crop the DEM to a study area polygon boundary. Compare the full and cropped raster extents.</p>
+
+<h3>Section 7: Extracting Raster Values at Point Locations</h3>
+<p>Extract elevation and slope values at building locations. Write a function that maps point
+coordinates to raster cells.</p>
+
+<h3>Section 8: Combining Raster and Vector — Seismic Hazard Assessment</h3>
+<p>Create a PGA raster. Extract shaking intensity at buildings. Classify damage potential and
+produce a final assessment map.</p>
+
+<h3>Section 9: Zonal Statistics</h3>
+<p>Divide the study area into zones. Compute mean, max, and range statistics per zone. Visualise
+zone boundaries on the DEM.</p>
+
+<h3>Section 10: Elevation Distribution (Hypsometric Curve)</h3>
+<p>Plot the elevation histogram and hypsometric curve. Interpret what the curve shape says about
+Banks Peninsula's terrain compared to a flat alluvial plain.</p>
+
+<h2 id="signoff"><span class="step">4</span>Assessment: Lab Sign-Off</h2>
+
+<div class="warn"><strong>This lab is not complete until you have submitted your sign-off to LEARN.</strong></div>
+
+<h3>Step 1 — Self-check</h3>
+<p>Before you start the quiz, make sure you can do each of these:</p>
+<ul>
+  <li>Loaded and inspected the real Banks Peninsula DEM</li>
+  <li>Created hillshade visualisations with different sun angles</li>
+  <li>Performed reclassification and masking operations</li>
+  <li>Computed slope and identified steep areas on the volcanic flanks</li>
+  <li>Extracted raster values at building locations</li>
+  <li>Completed the seismic hazard assessment with damage classification</li>
+  <li>Computed zonal statistics and interpreted the results</li>
+</ul>
+
+<h3>Step 2 — Take the sign-off quiz</h3>
+<ol>
+  <li>Download <strong>Lab3_SignOff.html</strong> from LEARN and open it in your web browser.</li>
+  <li>Enter your full name and University ID, then answer the <strong>10 questions</strong>.</li>
+  <li>You need <strong>8 out of 10</strong> to pass. You can retake it as often as you like — each
+      attempt draws a new set of questions, and every answer comes with an explanation.</li>
+  <li>When you pass, click <strong>Download Sign-Off PNG</strong>. This saves a file called
+      <code>ENCN205_Lab3_&lt;yourID&gt;.png</code>.</li>
+</ol>
+
+<h3>Step 3 — Submit</h3>
+<p>Upload <code>ENCN205_Lab3_&lt;yourID&gt;.png</code> to the <strong>Lab 3 Sign-Off</strong>
+submission on LEARN.</p>
+
+<div class="note">The PNG records your name, ID, score, and a timestamp inside the QR code.
+It's your proof of completion — show it to your tutor if they ask.</div>
+
+<h2 id="troubleshooting">Tips and Troubleshooting</h2>
+
+<table>
+  <tr><th>Symptom</th><th>Fix</th></tr>
+  <tr><td><code>imshow</code> shows the DEM upside-down</td>
+      <td>Use the <code>origin='lower'</code> parameter</td></tr>
+  <tr><td>Colours look wrong</td>
+      <td>Check for <code>NaN</code> values in your array</td></tr>
+  <tr><td>Slope values look far too small or large</td>
+      <td><code>np.degrees()</code> converts radians to degrees</td></tr>
+  <tr><td>Point extraction returns the wrong cell</td>
+      <td>Array indexing is <code>row = (y - y_origin) / resolution</code>,
+          <code>col = (x - x_origin) / resolution</code></td></tr>
+  <tr><td>Shape errors when combining arrays</td>
+      <td>Check the array shape — a DEM is <code>(rows, cols)</code>, not <code>(cols, rows)</code></td></tr>
+  <tr><td>Working with your own data later</td>
+      <td>For real projects, use <code>rioxarray</code> to read GeoTIFF files</td></tr>
+</table>
+
+<footer>
+ENCN205 — Applied Data Analysis for Civil and Natural Systems · GIS component ·
+Lab 3 (sign-off submitted to LEARN) · Questions: LEARN forum or
+alberto.ardid@canterbury.ac.nz
+</footer>
+
+</main>
+</body>
+</html>

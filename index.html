@@ -17,11 +17,15 @@
   footer { margin-top: 40px; color: #888; font-size: 0.85em; }
   h2 { color: #0f3460; margin-top: 36px; font-size: 1.2em; border-bottom: 2px solid #00b4d8; padding-bottom: 4px; }
   .pdfs li { border-left-color: #0f3460; }
+  .labs li { border-left-color: #dc3545; }
+  .links { margin-top: 6px; font-size: 0.9em; }
+  .links a { font-weight: normal; }
+  code { background: #eef; padding: 1px 4px; border-radius: 3px; }
 </style>
 </head>
 <body>
-<h1>ENCN205 — GIS Component: Lecture Slides &amp; Demos</h1>
-<p class="sub">University of Canterbury · Applied Data Analysis for Civil and Natural Systems · Backup copy of the lecture slides and interactive demos posted on Learn</p>
+<h1>ENCN205 — GIS Component: Lecture Slides, Labs &amp; Demos</h1>
+<p class="sub">University of Canterbury · Applied Data Analysis for Civil and Natural Systems · Backup copy of the lecture slides, labs and interactive demos posted on Learn</p>
 <h2>Lecture slides (PDF)</h2>
 <ol class="pdfs">
   <li><a href="lectures/Lecture01_WhyLocationMatters.pdf">Lecture 1 — Why Location Matters</a><span>Lecture01_WhyLocationMatters.pdf</span></li>
@@ -35,6 +39,14 @@
   <li><a href="lectures/Lecture09_HydrologicalAnalysis.pdf">Lecture 9 — Hydrological Analysis</a><span>Lecture09_HydrologicalAnalysis.pdf</span></li>
   <li><a href="lectures/Lecture10_RiskAssessmentMCE.pdf">Lecture 10 — Risk Assessment &amp; MCE</a><span>Lecture10_RiskAssessmentMCE.pdf</span></li>
   <li><a href="lectures/Lecture11_FutureOfGIS.pdf">Lecture 11 — The Future of GIS</a><span>Lecture11_FutureOfGIS.pdf</span></li>
+</ol>
+<h2>Labs</h2>
+<p class="sub">Work through each lab in order: read the instructions, complete the notebook in Jupyter, then complete the sign-off quiz on Learn and upload the PNG it gives you there. Keep the <code>data/</code> folder next to the notebooks. <a href="labs/ENCN205_Labs.zip"><strong>Download all labs as one ZIP</strong></a> (notebooks, instructions and data, about 11 MB).</p>
+<ol class="labs">
+  <li><a href="labs/Lab0_Setup.ipynb" download>Lab 0 — Setup</a><span>Install the Python environment and run your first map (ungraded, but required before Lab 1).</span><span class="links"><a href="labs/Lab0_Instructions.html">Instructions</a> · <a href="labs/Lab0_Setup.ipynb" download>Notebook (.ipynb)</a></span></li>
+  <li><a href="labs/Lab1_SpatialData_CRS.ipynb" download>Lab 1 — Spatial Data &amp; CRS</a><span>Reading, exploring and reprojecting spatial data with GeoPandas.</span><span class="links"><a href="labs/Lab1_Instructions.html">Instructions</a> · <a href="labs/Lab1_SpatialData_CRS.ipynb" download>Notebook (.ipynb)</a></span></li>
+  <li><a href="labs/Lab2_VectorAnalysis.ipynb" download>Lab 2 — Vector Analysis</a><span>Buffers, spatial joins and overlays on eastern Christchurch.</span><span class="links"><a href="labs/Lab2_Instructions.html">Instructions</a> · <a href="labs/Lab2_VectorAnalysis.ipynb" download>Notebook (.ipynb)</a> · <a href="labs/data/christchurch.gpkg" download>christchurch.gpkg</a></span></li>
+  <li><a href="labs/Lab3_RasterAnalysis.ipynb" download>Lab 3 — Raster Analysis</a><span>DEM, slope and hazard mapping on Banks Peninsula.</span><span class="links"><a href="labs/Lab3_Instructions.html">Instructions</a> · <a href="labs/Lab3_RasterAnalysis.ipynb" download>Notebook (.ipynb)</a> · <a href="labs/data/banks_peninsula_dem.npy" download>banks_peninsula_dem.npy</a> · <a href="labs/data/banks_peninsula_meta.json" download>banks_peninsula_meta.json</a></span></li>
 </ol>
 <h2>Interactive demos</h2>
 <ol>

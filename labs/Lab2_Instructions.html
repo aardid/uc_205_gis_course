@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENCN205 — Lab 2: Vector Analysis</title>
+<style>
+  :root {
+    --ink: #1e2b33;
+    --soft: #5a6b74;
+    --accent: #0f6b5e;
+    --accent-bg: #e8f2f0;
+    --hairline: #d9e1e4;
+    --warn-bg: #fdf3e0;
+    --warn-edge: #c9932e;
+    --code-bg: #eef2f3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", -apple-system, Arial, sans-serif;
+    color: var(--ink);
+    background: #f6f8f8;
+    line-height: 1.55;
+  }
+  main { max-width: 54rem; margin: 0 auto; padding: 0 1.25rem 4rem; }
+  header {
+    background: var(--accent);
+    color: #fff;
+    padding: 2rem 0 1.5rem;
+  }
+  header .inner { max-width: 54rem; margin: 0 auto; padding: 0 1.25rem; }
+  header h1 { margin: 0 0 0.3rem; font-size: 1.7rem; }
+  header p { margin: 0; opacity: 0.9; }
+  .badge {
+    display: inline-block; background: rgba(255,255,255,0.18);
+    border-radius: 999px; padding: 0.15rem 0.7rem; font-size: 0.8rem;
+    margin-bottom: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  h2 {
+    font-size: 1.25rem; margin: 2.4rem 0 0.6rem;
+    padding-top: 1.2rem; border-top: 1px solid var(--hairline);
+  }
+  h2 .step {
+    display: inline-block; background: var(--accent); color: #fff;
+    border-radius: 50%; width: 1.7rem; height: 1.7rem; line-height: 1.7rem;
+    text-align: center; font-size: 0.95rem; margin-right: 0.5rem;
+  }
+  h3 { font-size: 1.02rem; margin: 1.4rem 0 0.3rem; color: var(--accent); }
+  code, pre {
+    font-family: Consolas, "Cascadia Code", monospace;
+    background: var(--code-bg); border-radius: 4px;
+  }
+  code { padding: 0.1em 0.35em; font-size: 0.9em; }
+  pre {
+    padding: 0.8rem 1rem; overflow-x: auto;
+    border: 1px solid var(--hairline); font-size: 0.88rem;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; background: #fff; }
+  th, td { text-align: left; padding: 0.5rem 0.7rem; border: 1px solid var(--hairline); vertical-align: top; }
+  th { background: var(--accent-bg); }
+  .note {
+    background: var(--accent-bg); border-left: 4px solid var(--accent);
+    border-radius: 0 6px 6px 0; padding: 0.7rem 1rem; margin: 1rem 0;
+  }
+  .warn {
+    background: var(--warn-bg); border-left: 4px solid var(--warn-edge);
+    border-radius: 0 6px 6px 0; padding: 0.7rem 1rem; margin: 1rem 0;
+  }
+  a { color: var(--accent); }
+  .meta { color: var(--soft); font-size: 0.9rem; }
+  footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--hairline); color: var(--soft); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <div class="badge">ENCN205 · GIS Component · Lab 2</div>
+    <h1>Lab 2: Vector Analysis — Infrastructure Exposure Assessment</h1>
+    <p>University of Canterbury · Te Whare Wānanga o Waitaha</p>
+  </div>
+</header>
+
+<main>
+
+<p class="meta"><strong>Duration:</strong> 2–3 hours &nbsp;·&nbsp;
+<strong>Format:</strong> Python (Jupyter notebook) &nbsp;·&nbsp;
+<strong>Prerequisite:</strong> Lab 1 &nbsp;·&nbsp;
+<strong>Assessment:</strong> sign-off quiz submitted to LEARN</p>
+
+<h2><span class="step">1</span>Learning Objectives</h2>
+
+<ul>
+  <li>Join attribute tables to spatial data using <code>.merge()</code></li>
+  <li>Filter GeoDataFrames using attribute queries</li>
+  <li>Perform spatial joins using <code>gpd.sjoin()</code></li>
+  <li>Create buffer zones around infrastructure features</li>
+  <li>Clip spatial data to a study area boundary</li>
+  <li>Compute spatial aggregations using <code>.dissolve()</code> and <code>.groupby()</code></li>
+  <li>Build interactive web maps with <code>.explore()</code></li>
+</ul>
+
+<h2><span class="step">2</span>Engineering Scenario</h2>
+
+<p>You are a graduate engineer at a consulting firm assessing coastal infrastructure exposure for
+the Christchurch City Council. Your task is to determine which buildings, roads, and communities
+are at risk from sea-level rise in the 0–5 m elevation zone. You will combine census,
+infrastructure, and hazard data to produce an exposure report.</p>
+
+<div class="note">Start as usual: <code>conda activate encn205</code>, then <code>jupyter lab</code>,
+then open <code>Lab2_VectorAnalysis.ipynb</code> and run the cells in order with
+<strong>Shift + Enter</strong>.</div>
+
+<h2><span class="step">3</span>Step-by-Step Instructions</h2>
+
+<h3>Section 1: Setup and Data Creation</h3>
+<p>Load libraries and the Christchurch coastal zone datasets — buildings, pipes, statistical areas,
+and a coastal hazard zone.</p>
+
+<h3>Section 2: Attribute Queries</h3>
+<p>Filter GeoDataFrames by attribute values. Identify residential buildings in the low-elevation
+zone. Practice combining multiple filter conditions with <code>&amp;</code> and <code>|</code> operators.</p>
+
+<h3>Section 3: Table Joins (<code>.merge()</code>)</h3>
+<p>Merge a valuation table (plain DataFrame) to buildings (GeoDataFrame) using a shared key.
+Verify the result retains geometry. Map buildings by capital value.</p>
+
+<h3>Section 4: Spatial Joins (<code>gpd.sjoin()</code>)</h3>
+<p>Assign each building to its statistical area using a spatial join. Summarise building counts and
+values per area. Practice spatial join with pipe data.</p>
+
+<h3>Section 5: Buffer Analysis</h3>
+<p>Create 50 m buffer zones around pipes. Use a spatial join to find buildings within buffer zones.
+Understand how buffer distance depends on CRS units.</p>
+
+<h3>Section 6: Clipping</h3>
+<p>Extract buildings within a focus area boundary using <code>gpd.clip()</code>. Compare the full
+dataset to the clipped result.</p>
+
+<h3>Section 7: Dissolve and Aggregation</h3>
+<p>Merge statistical areas by deprivation category. Aggregate population and other attributes.
+Compare individual vs dissolved maps.</p>
+
+<h3>Section 8: Interactive Maps</h3>
+<p>Create interactive web maps with <code>.explore()</code>. Add multiple layers, tooltips, and
+popups. Experiment with different basemap tiles.</p>
+
+<h3>Section 9: Exposure Assessment</h3>
+<p>Combine all techniques: filter at-risk buildings, spatial join to areas, summarise by
+deprivation level. Produce a final exposure map and summary table.</p>
+
+<h2 id="signoff"><span class="step">4</span>Assessment: Lab Sign-Off</h2>
+
+<div class="warn"><strong>This lab is not complete until you have submitted your sign-off to LEARN.</strong></div>
+
+<h3>Step 1 — Self-check</h3>
+<p>Before you start the quiz, make sure you can do each of these:</p>
+<ul>
+  <li>Loaded a multi-layer GeoPackage and described its contents</li>
+  <li>Performed attribute queries to filter features by multiple criteria</li>
+  <li>Completed a spatial join and explained how it differs from a table join</li>
+  <li>Created buffer zones and identified affected buildings</li>
+  <li>Produced the exposure summary table by deprivation level</li>
+  <li>Created at least one interactive map using <code>.explore()</code></li>
+</ul>
+
+<h3>Step 2 — Take the sign-off quiz</h3>
+<ol>
+  <li>Download <strong>Lab2_SignOff.html</strong> from LEARN and open it in your web browser.</li>
+  <li>Enter your full name and University ID, then answer the <strong>10 questions</strong>.</li>
+  <li>You need <strong>8 out of 10</strong> to pass. You can retake it as often as you like — each
+      attempt draws a new set of questions, and every answer comes with an explanation.</li>
+  <li>When you pass, click <strong>Download Sign-Off PNG</strong>. This saves a file called
+      <code>ENCN205_Lab2_&lt;yourID&gt;.png</code>.</li>
+</ol>
+
+<h3>Step 3 — Submit</h3>
+<p>Upload <code>ENCN205_Lab2_&lt;yourID&gt;.png</code> to the <strong>Lab 2 Sign-Off</strong>
+submission on LEARN.</p>
+
+<div class="note">The PNG records your name, ID, score, and a timestamp inside the QR code.
+It's your proof of completion — show it to your tutor if they ask.</div>
+
+<h2 id="troubleshooting">Tips and Troubleshooting</h2>
+
+<table>
+  <tr><th>Symptom</th><th>Fix</th></tr>
+  <tr><td>Spatial join returns empty</td>
+      <td>Check both layers have the same CRS</td></tr>
+  <tr><td><code>.explore()</code> fails</td>
+      <td><code>conda install -c conda-forge folium mapclassify</code></td></tr>
+  <tr><td>Buffer distances look wrong</td>
+      <td>Always buffer in a projected CRS (EPSG:2193), never geographic (EPSG:4326)</td></tr>
+  <tr><td><code>dissolve</code> fails</td>
+      <td>Check for <code>None</code>/<code>NaN</code> values in the grouping column</td></tr>
+  <tr><td>Unsure what an operation returned</td>
+      <td>Use <code>type(result)</code> to verify you still have a GeoDataFrame</td></tr>
+</table>
+
+<footer>
+ENCN205 — Applied Data Analysis for Civil and Natural Systems · GIS component ·
+Lab 2 (sign-off submitted to LEARN) · Questions: LEARN forum or
+alberto.ardid@canterbury.ac.nz
+</footer>
+
+</main>
+</body>
+</html>

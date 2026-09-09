@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENCN205 — Lab 0: Setting Up Jupyter, Python &amp; GeoPandas</title>
+<style>
+  :root {
+    --ink: #1e2b33;
+    --soft: #5a6b74;
+    --accent: #0f6b5e;
+    --accent-bg: #e8f2f0;
+    --hairline: #d9e1e4;
+    --warn-bg: #fdf3e0;
+    --warn-edge: #c9932e;
+    --code-bg: #eef2f3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", -apple-system, Arial, sans-serif;
+    color: var(--ink);
+    background: #f6f8f8;
+    line-height: 1.55;
+  }
+  main { max-width: 54rem; margin: 0 auto; padding: 0 1.25rem 4rem; }
+  header {
+    background: var(--accent);
+    color: #fff;
+    padding: 2rem 0 1.5rem;
+  }
+  header .inner { max-width: 54rem; margin: 0 auto; padding: 0 1.25rem; }
+  header h1 { margin: 0 0 0.3rem; font-size: 1.7rem; }
+  header p { margin: 0; opacity: 0.9; }
+  .badge {
+    display: inline-block; background: rgba(255,255,255,0.18);
+    border-radius: 999px; padding: 0.15rem 0.7rem; font-size: 0.8rem;
+    margin-bottom: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  h2 {
+    font-size: 1.25rem; margin: 2.4rem 0 0.6rem;
+    padding-top: 1.2rem; border-top: 1px solid var(--hairline);
+  }
+  h2 .step {
+    display: inline-block; background: var(--accent); color: #fff;
+    border-radius: 50%; width: 1.7rem; height: 1.7rem; line-height: 1.7rem;
+    text-align: center; font-size: 0.95rem; margin-right: 0.5rem;
+  }
+  code, pre {
+    font-family: Consolas, "Cascadia Code", monospace;
+    background: var(--code-bg); border-radius: 4px;
+  }
+  code { padding: 0.1em 0.35em; font-size: 0.9em; }
+  pre {
+    padding: 0.8rem 1rem; overflow-x: auto;
+    border: 1px solid var(--hairline); font-size: 0.88rem;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; background: #fff; }
+  th, td { text-align: left; padding: 0.5rem 0.7rem; border: 1px solid var(--hairline); vertical-align: top; }
+  th { background: var(--accent-bg); }
+  .note {
+    background: var(--accent-bg); border-left: 4px solid var(--accent);
+    border-radius: 0 6px 6px 0; padding: 0.7rem 1rem; margin: 1rem 0;
+  }
+  .warn {
+    background: var(--warn-bg); border-left: 4px solid var(--warn-edge);
+    border-radius: 0 6px 6px 0; padding: 0.7rem 1rem; margin: 1rem 0;
+  }
+  a { color: var(--accent); }
+  .meta { color: var(--soft); font-size: 0.9rem; }
+  footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--hairline); color: var(--soft); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <div class="badge">ENCN205 · GIS Component · Week 8 · Online, self-paced</div>
+    <h1>Lab 0: Setting Up Jupyter, Python &amp; GeoPandas</h1>
+    <p>University of Canterbury · Te Whare Wānanga o Waitaha</p>
+  </div>
+</header>
+
+<main>
+
+<p class="meta"><strong>Time:</strong> 30–45 minutes &nbsp;·&nbsp;
+<strong>Assessment:</strong> ungraded, but a sign-off must be submitted &nbsp;·&nbsp;
+<strong>Deadline:</strong> before Lab 1 (Week 9)</p>
+
+<p>Labs 1–4 of the GIS component are assessed and all run in Python/Jupyter.
+Lab 0 gets your computer ready so that in Lab 1 you spend your time doing GIS,
+not fixing installations. Work through the six steps below, in order.
+If anything goes wrong, the <a href="#troubleshooting">Troubleshooting</a> table
+covers the common problems.</p>
+
+<div class="note"><strong>Using your own laptop is recommended</strong> — you'll want
+the same setup for the labs, the assignment work, and later courses. Any Windows,
+macOS, or Linux machine from the last ~8 years is fine.</div>
+
+<h2><span class="step">1</span>Install Miniforge (or Anaconda)</h2>
+
+<p>The labs use <strong>conda</strong> to manage Python and its geospatial libraries.
+Two ways to get it — pick one:</p>
+
+<table>
+  <tr><th></th><th>Miniforge (recommended)</th><th>Anaconda</th></tr>
+  <tr><td><strong>Get it</strong></td>
+      <td><a href="https://conda-forge.org/download/">conda-forge.org/download</a></td>
+      <td><a href="https://www.anaconda.com/download">anaconda.com/download</a></td></tr>
+  <tr><td><strong>Size</strong></td><td>Small (~100&nbsp;MB), installs fast</td><td>Large (~4&nbsp;GB), includes lots you won't use</td></tr>
+  <tr><td><strong>Good if</strong></td><td>You just want the course working</td><td>You already have it installed — no need to switch</td></tr>
+</table>
+
+<p>Run the installer with the default options. On Windows, when it finishes you'll have a
+new Start-menu entry called <strong>Miniforge Prompt</strong> (or <strong>Anaconda Prompt</strong>) —
+that's the terminal you'll use in the next step. On macOS/Linux, use the normal Terminal.</p>
+
+<div class="note">If you already have Anaconda or Miniconda installed from another course,
+skip the installer and go straight to Step 2.</div>
+
+<h2><span class="step">2</span>Create the ENCN205 environment</h2>
+
+<p>An <em>environment</em> is a self-contained set of packages — it keeps this course's
+libraries from interfering with anything else on your machine. Open your
+<strong>Miniforge/Anaconda Prompt</strong> (Windows) or <strong>Terminal</strong> (macOS/Linux)
+and paste this single command:</p>
+
+<pre>conda create -n encn205 -c conda-forge python=3.12 geopandas fiona folium geodatasets mapclassify matplotlib jupyterlab</pre>
+
+<p>Press <code>y</code> when asked to proceed. This downloads ~500&nbsp;MB and takes a few
+minutes — a good moment to make a cup of tea. When it finishes, activate it:</p>
+
+<pre>conda activate encn205</pre>
+
+<p>Your prompt should now start with <code>(encn205)</code>.</p>
+
+<h2><span class="step">3</span>Launch JupyterLab</h2>
+
+<p>With the environment active, start JupyterLab:</p>
+
+<pre>jupyter lab</pre>
+
+<p>Your web browser will open a page that looks like a file manager with an orange logo —
+that's JupyterLab, the tool you'll use for every lab. (To stop it later, close the browser
+tab and press <code>Ctrl+C</code> in the terminal.)</p>
+
+<div class="note"><strong>Every time you work on ENCN205</strong>, the routine is the same
+two commands: <code>conda activate encn205</code> then <code>jupyter lab</code>.</div>
+
+<h2><span class="step">4</span>Download and run the Lab 0 notebook</h2>
+
+<ol>
+  <li>Download <strong>Lab0_Setup.ipynb</strong> from LEARN.</li>
+  <li>Save it somewhere sensible — e.g. create a folder <code>Documents\ENCN205</code>
+      and keep all your lab files there.</li>
+  <li>In JupyterLab, use the file browser (left panel) to navigate to that folder and
+      double-click <code>Lab0_Setup.ipynb</code>.</li>
+  <li>Work through it from the top — it teaches you how notebooks work, checks your
+      installation, and makes your first map.</li>
+</ol>
+
+<h2><span class="step">5</span>Confirm you're ready</h2>
+
+<p>The final cell of the notebook runs a readiness check. You're done when you see:</p>
+
+<pre>🎉  YOU ARE READY FOR LAB 1  🎉</pre>
+
+<p>If you got the banner, your environment is working. One short step to go.</p>
+
+<h2><span class="step">6</span>Complete the sign-off and submit it</h2>
+
+<p>Lab 0 is ungraded, but you do need to record that your setup is working — this is
+how we know you're ready before the assessed labs start.</p>
+
+<ol>
+  <li>Download <strong>Lab0_SignOff.html</strong> from LEARN and open it in your web browser.</li>
+  <li>Enter your full name and University ID, then answer the <strong>5 questions</strong>
+      about what you did in Lab 0.</li>
+  <li>You need <strong>4 out of 5</strong> to pass. You can retake it as often as you like —
+      each attempt draws a new set of questions, and every answer comes with an explanation.</li>
+  <li>When you pass, click <strong>Download Sign-Off PNG</strong>. This saves a file called
+      <code>ENCN205_Lab0_&lt;yourID&gt;.png</code>.</li>
+  <li>Upload that PNG to the <strong>Lab 0 Sign-Off</strong> submission on LEARN.</li>
+</ol>
+
+<div class="note">The PNG records your name, ID, score, and a timestamp inside the QR code.
+It's your proof of completion — show it to your tutor if they ask. Every lab in this course
+finishes the same way, so it's worth getting familiar with the routine now.</div>
+
+<h2 id="troubleshooting">Troubleshooting</h2>
+
+<table>
+  <tr><th>Symptom</th><th>Fix</th></tr>
+  <tr>
+    <td><code>'conda' is not recognized…</code> (Windows)</td>
+    <td>You're in the wrong terminal. Use the <strong>Miniforge Prompt</strong> /
+        <strong>Anaconda Prompt</strong> from the Start menu, not plain Command Prompt or PowerShell.</td>
+  </tr>
+  <tr>
+    <td><code>conda create</code> hangs on "Solving environment" for many minutes</td>
+    <td>Most likely you're on old Anaconda. Either install Miniforge instead (Step 1), or run
+        <code>conda update -n base conda</code> and
+        <code>conda config --set solver libmamba</code>, then retry.</td>
+  </tr>
+  <tr>
+    <td><code>ImportError</code> / ❌ next to a package in the notebook check</td>
+    <td>With the environment active, run
+        <code>conda install -c conda-forge &lt;package-name&gt;</code>, then restart the
+        notebook kernel (Kernel&nbsp;→&nbsp;Restart) and re-run.</td>
+  </tr>
+  <tr>
+    <td>Packages are installed but the notebook still can't import them</td>
+    <td>JupyterLab is probably running from the wrong environment. Close it, then make sure
+        you run <code>conda activate encn205</code> <em>before</em> <code>jupyter lab</code>.</td>
+  </tr>
+  <tr>
+    <td>Download/install fails on campus Wi-Fi with an SSL or proxy error</td>
+    <td>Try again on a different network (e.g. at home or a hotspot), or ask a tutor —
+        this is a network issue, not a you issue.</td>
+  </tr>
+  <tr>
+    <td>The map in Section 3 doesn't appear</td>
+    <td>Make sure you ran the cells above it first (Run&nbsp;→&nbsp;Run All Cells is the easy way).</td>
+  </tr>
+  <tr>
+    <td>Mac with Apple Silicon (M1–M4)</td>
+    <td>Fully supported — just make sure you downloaded the <em>Apple Silicon</em> installer in Step 1.</td>
+  </tr>
+</table>
+
+<div class="warn"><strong>Still stuck?</strong> Post the <em>exact</em> error message
+(a screenshot is perfect) on the course LEARN forum, or bring your laptop to your first
+lab session — tutors will help you get running before any assessed work starts.</div>
+
+<footer>
+ENCN205 — Applied Data Analysis for Civil and Natural Systems · GIS component ·
+Lab 0 (ungraded setup module, sign-off submitted to LEARN) · Questions: LEARN forum or
+alberto.ardid@canterbury.ac.nz
+</footer>
+
+</main>
+</body>
+</html>

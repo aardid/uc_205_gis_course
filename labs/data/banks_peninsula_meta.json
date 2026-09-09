@@ -1,0 +1,15 @@
+{
+  "description": "Banks Peninsula DEM \u2014 cropped from LINZ NZ 8m DEM 2012",
+  "rows": 500,
+  "cols": 500,
+  "resolution_m": 8,
+  "crs": "EPSG:2193",
+  "crs_name": "NZTM2000",
+  "x_origin": 1575268,
+  "y_origin": 5167740,
+  "x_max": 1579268,
+  "y_max": 5171740,
+  "elevation_min": 1.1665153503417969,
+  "elevation_max": 780.5036010742188,
+  "source": "LINZ NZ 8m Digital Elevation Model 2012"
+}

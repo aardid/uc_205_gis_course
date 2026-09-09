@@ -1,6 +1,6 @@
-# ENCN205 — GIS Component: Lecture Slides & Interactive Demos
+# ENCN205 — GIS Component: Lecture Slides, Labs & Interactive Demos
 
-Backup copy of the lecture slides (PDF) and interactive demos for ENCN205 (Applied Data Analysis for Civil and Natural Systems, University of Canterbury), GIS component, 2026.
+Backup copy of the lecture slides (PDF), labs and interactive demos for ENCN205 (Applied Data Analysis for Civil and Natural Systems, University of Canterbury), GIS component, 2026.
 
 **Live site:** https://aardid.github.io/uc_205_gis_course/
 
@@ -40,6 +40,19 @@ PDF exports of the lecture decks (slides only, no speaker notes) live in `lectur
 | `lectures/Lecture10_RiskAssessmentMCE.pdf` | Lecture 10 — Risk Assessment & MCE |
 | `lectures/Lecture11_FutureOfGIS.pdf` | Lecture 11 — The Future of GIS |
 
+## Labs
+
+Student lab package in `labs/`: instructions, Jupyter notebooks and the data the notebooks read from `labs/data/`. `labs/ENCN205_Labs.zip` bundles all of it for download.
+
+| Lab | Notebook | Instructions |
+|---|---|---|
+| Lab 0 — Setup | `Lab0_Setup.ipynb` | `Lab0_Instructions.html` |
+| Lab 1 — Spatial Data & CRS | `Lab1_SpatialData_CRS.ipynb` | `Lab1_Instructions.html` |
+| Lab 2 — Vector Analysis | `Lab2_VectorAnalysis.ipynb` | `Lab2_Instructions.html` |
+| Lab 3 — Raster Analysis | `Lab3_RasterAnalysis.ipynb` | `Lab3_Instructions.html` |
+
+Sign-off quizzes are on Learn only and are deliberately not published here. Notebooks are the student versions with the exercise cells blank; solutions are never published.
+
 ## Updating
 
-The source of truth is the course project folder (`Demos/ENCN205_Demos_SelfContained/`). To publish a new version, copy that folder's contents over this repository. Lecture PDFs come from `Lectures/Lecture_pdf/` and go in `lectures/`. Then commit and `git push origin main main:gh-pages`.
+The source of truth is the course project folder (`Demos/ENCN205_Demos_SelfContained/`). To publish a new version, copy that folder's contents over this repository. Lecture PDFs come from `Lectures/Lecture_pdf/` and go in `lectures/`. Labs come from `Labs/Labs_SelfContained/` and go in `labs/`; rebuild `labs/ENCN205_Labs.zip` afterwards. Then commit and `git push origin main main:gh-pages`.

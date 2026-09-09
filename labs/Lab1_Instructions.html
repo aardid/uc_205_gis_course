@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENCN205 — Lab 1: Reading, Exploring &amp; Projecting Spatial Data</title>
+<style>
+  :root {
+    --ink: #1e2b33;
+    --soft: #5a6b74;
+    --accent: #0f6b5e;
+    --accent-bg: #e8f2f0;
+    --hairline: #d9e1e4;
+    --warn-bg: #fdf3e0;
+    --warn-edge: #c9932e;
+    --code-bg: #eef2f3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", -apple-system, Arial, sans-serif;
+    color: var(--ink);
+    background: #f6f8f8;
+    line-height: 1.55;
+  }
+  main { max-width: 54rem; margin: 0 auto; padding: 0 1.25rem 4rem; }
+  header {
+    background: var(--accent);
+    color: #fff;
+    padding: 2rem 0 1.5rem;
+  }
+  header .inner { max-width: 54rem; margin: 0 auto; padding: 0 1.25rem; }
+  header h1 { margin: 0 0 0.3rem; font-size: 1.7rem; }
+  header p { margin: 0; opacity: 0.9; }
+  .badge {
+    display: inline-block; background: rgba(255,255,255,0.18);
+    border-radius: 999px; padding: 0.15rem 0.7rem; font-size: 0.8rem;
+    margin-bottom: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  h2 {
+    font-size: 1.25rem; margin: 2.4rem 0 0.6rem;
+    padding-top: 1.2rem; border-top: 1px solid var(--hairline);
+  }
+  h2 .step {
+    display: inline-block; background: var(--accent); color: #fff;
+    border-radius: 50%; width: 1.7rem; height: 1.7rem; line-height: 1.7rem;
+    text-align: center; font-size: 0.95rem; margin-right: 0.5rem;
+  }
+  h3 { font-size: 1.02rem; margin: 1.4rem 0 0.3rem; color: var(--accent); }
+  code, pre {
+    font-family: Consolas, "Cascadia Code", monospace;
+    background: var(--code-bg); border-radius: 4px;
+  }
+  code { padding: 0.1em 0.35em; font-size: 0.9em; }
+  pre {
+    padding: 0.8rem 1rem; overflow-x: auto;
+    border: 1px solid var(--hairline); font-size: 0.88rem;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; background: #fff; }
+  th, td { text-align: left; padding: 0.5rem 0.7rem; border: 1px solid var(--hairline); vertical-align: top; }
+  th { background: var(--accent-bg); }
+  .note {
+    background: var(--accent-bg); border-left: 4px solid var(--accent);
+    border-radius: 0 6px 6px 0; padding: 0.7rem 1rem; margin: 1rem 0;
+  }
+  .warn {
+    background: var(--warn-bg); border-left: 4px solid var(--warn-edge);
+    border-radius: 0 6px 6px 0; padding: 0.7rem 1rem; margin: 1rem 0;
+  }
+  a { color: var(--accent); }
+  .meta { color: var(--soft); font-size: 0.9rem; }
+  footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--hairline); color: var(--soft); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <div class="badge">ENCN205 · GIS Component · Lab 1</div>
+    <h1>Lab 1: Reading, Exploring, and Projecting Spatial Data</h1>
+    <p>University of Canterbury · Te Whare Wānanga o Waitaha</p>
+  </div>
+</header>
+
+<main>
+
+<p class="meta"><strong>Duration:</strong> 2–3 hours &nbsp;·&nbsp;
+<strong>Format:</strong> Python (Jupyter notebook) &nbsp;·&nbsp;
+<strong>Prerequisite:</strong> Lab 0 &nbsp;·&nbsp;
+<strong>Assessment:</strong> sign-off quiz submitted to LEARN</p>
+
+<h2><span class="step">1</span>Learning Objectives</h2>
+
+<ul>
+  <li>Import and use core Python geospatial libraries (geopandas, matplotlib, pandas)</li>
+  <li>Read spatial data from multiple formats (GeoPackage, Shapefile, GeoJSON, CSV)</li>
+  <li>Inspect GeoDataFrame properties: geometry, attributes, CRS, and extent</li>
+  <li>Understand coordinate reference systems and reproject data using <code>.to_crs()</code></li>
+  <li>Create basic choropleth maps using matplotlib</li>
+  <li>Export spatial data to GeoPackage format</li>
+</ul>
+
+<h2><span class="step">2</span>Before You Start</h2>
+
+<p>You need the <code>encn205</code> environment from <strong>Lab 0</strong>. If you have not done
+Lab 0 yet, do it first — it installs everything this lab depends on.</p>
+
+<p>Basic Python knowledge is assumed: variables, lists, loops, and functions.</p>
+
+<p>To start work, open your <strong>Miniforge/Anaconda Prompt</strong> (Windows) or
+<strong>Terminal</strong> (macOS/Linux) and run the usual two commands:</p>
+
+<pre>conda activate encn205
+jupyter lab</pre>
+
+<p>Then use the JupyterLab file browser to open <code>Lab1_SpatialData_CRS.ipynb</code> and
+run the cells in order with <strong>Shift + Enter</strong>.</p>
+
+<div class="note">If <code>conda</code> is not recognised, or a package fails to import, see the
+Troubleshooting table in <strong>Lab0_Instructions</strong> — it covers the common setup problems.</div>
+
+<h2><span class="step">3</span>Step-by-Step Instructions</h2>
+
+<h3>Section 1: Environment Setup</h3>
+<p>Import geopandas, pandas, and matplotlib. Verify all libraries load without errors. If you see
+an <code>ImportError</code>, ask your tutor for help installing the missing package.</p>
+
+<h3>Section 2: Understanding Geometry Types</h3>
+<p>Create Point, LineString, and Polygon objects using Shapely. Understand which geometry type
+represents which real-world feature. Visualise all three types side by side.</p>
+
+<h3>Section 3: Reading Spatial Data from Files</h3>
+<p>Load the Natural Earth world countries dataset using <code>gpd.read_file()</code>. This dataset
+ships with geopandas so no download is needed. Plot the world map to verify the data loaded correctly.</p>
+
+<h3>Section 4: Inspecting GeoDataFrame Properties</h3>
+<p>Use <code>.head()</code>, <code>.info()</code>, <code>.crs</code>, <code>.total_bounds</code>,
+and <code>.geom_type</code> to explore the dataset. Filter to New Zealand and inspect its
+properties. Complete the YOUR TURN exercise.</p>
+
+<h3>Section 5: Creating GeoDataFrames from CSV</h3>
+<p>Create a sample borehole dataset as a pandas DataFrame with Easting/Northing columns. Convert
+to a GeoDataFrame using <code>gpd.points_from_xy()</code>. Set the CRS to EPSG:2193 (NZTM2000).</p>
+
+<h3>Section 6: CRS and Reprojection</h3>
+<p>Check the CRS of your borehole data. Reproject from NZTM2000 to WGS84 using <code>.to_crs()</code>.
+Compare coordinates before and after reprojection. Calculate distances in both CRS to understand
+why a projected CRS is essential for engineering measurements.</p>
+
+<h3>Section 7: Choropleth Mapping</h3>
+<p>Create choropleth maps using <code>.plot(column=..., cmap=...)</code>. Experiment with different
+colour maps and classification schemes. Complete the water table depth mapping exercise.</p>
+
+<h3>Section 8: Writing Data to GeoPackage</h3>
+<p>Save your borehole GeoDataFrame to a GeoPackage file using <code>.to_file()</code>. Add a second
+layer (WGS84 version) to the same file. Verify by reading the data back.</p>
+
+<h2 id="signoff"><span class="step">4</span>Assessment: Lab Sign-Off</h2>
+
+<div class="warn"><strong>This lab is not complete until you have submitted your sign-off to LEARN.</strong></div>
+
+<h3>Step 1 — Self-check</h3>
+<p>Before you start the quiz, make sure you can do each of these:</p>
+<ul>
+  <li>Successfully loaded and inspected spatial data (show <code>.head()</code>, <code>.crs</code>, <code>.info()</code>)</li>
+  <li>Reprojected data between NZTM2000 and WGS84, and can explain the difference</li>
+  <li>Created at least two choropleth maps with appropriate colour schemes</li>
+  <li>Saved data to GeoPackage and verified the output by reading it back</li>
+  <li>Can answer: why must all layers share the same CRS for spatial analysis?</li>
+</ul>
+
+<h3>Step 2 — Take the sign-off quiz</h3>
+<ol>
+  <li>Download <strong>Lab1_SignOff.html</strong> from LEARN and open it in your web browser.</li>
+  <li>Enter your full name and University ID, then answer the <strong>10 questions</strong>.</li>
+  <li>You need <strong>8 out of 10</strong> to pass. You can retake it as often as you like — each
+      attempt draws a new set of questions, and every answer comes with an explanation.</li>
+  <li>When you pass, click <strong>Download Sign-Off PNG</strong>. This saves a file called
+      <code>ENCN205_Lab1_&lt;yourID&gt;.png</code>.</li>
+</ol>
+
+<h3>Step 3 — Submit</h3>
+<p>Upload <code>ENCN205_Lab1_&lt;yourID&gt;.png</code> to the <strong>Lab 1 Sign-Off</strong>
+submission on LEARN.</p>
+
+<div class="note">The PNG records your name, ID, score, and a timestamp inside the QR code.
+It's your proof of completion — show it to your tutor if they ask.</div>
+
+<h2 id="troubleshooting">Tips and Troubleshooting</h2>
+
+<table>
+  <tr><th>Symptom</th><th>Fix</th></tr>
+  <tr><td>geopandas won't import</td>
+      <td><code>conda install -c conda-forge geopandas</code>, then restart the kernel</td></tr>
+  <tr><td>Plots don't show</td>
+      <td>Add <code>%matplotlib inline</code> at the top of your notebook</td></tr>
+  <tr><td>CRS is <code>None</code></td>
+      <td>Your data has no CRS set — use <code>gdf.set_crs('EPSG:2193')</code></td></tr>
+  <tr><td>Spatial operations give empty results</td>
+      <td>Check that all layers use the same CRS</td></tr>
+  <tr><td><code>.explore()</code> doesn't work</td>
+      <td>Install folium: <code>conda install -c conda-forge folium</code></td></tr>
+</table>
+
+<div class="warn"><strong>Save your work frequently!</strong> Use <code>Ctrl + S</code> in JupyterLab.</div>
+
+<footer>
+ENCN205 — Applied Data Analysis for Civil and Natural Systems · GIS component ·
+Lab 1 (sign-off submitted to LEARN) · Questions: LEARN forum or
+alberto.ardid@canterbury.ac.nz
+</footer>
+
+</main>
+</body>
+</html>
