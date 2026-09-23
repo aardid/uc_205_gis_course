@@ -13,10 +13,10 @@ Each demo is a single self-contained HTML file. The `data/` folder holds the spa
 | `L03_VectorRaster.html` | 3 — Spatial Data Models |
 | `L04_CRS_Explorer.html` | 4 — CRS & Projections |
 | `L05_SpatialQueries.html` | 5 — Spatial Relationships |
-| `L06_VectorAnalysis.html` | 6 — Vector Analysis |
-| `L07_MapStyling.html` | 7 — Cartography Essentials |
-| `L08_RasterAnalysis.html` | 8 — Raster Analysis |
-| `L09_FlowAnalysis.html` | 9 — Hydrological Analysis |
+| `L06_MapStyling.html` | 6 — Cartography Essentials |
+| `L07_VectorAnalysis.html` | 7 — Vector Analysis |
+| `L08_FlowAnalysis.html` | 8 — Hydrological Analysis |
+| `L09_RasterAnalysis.html` | 9 — Raster Analysis |
 | `L10_RiskAssessment.html` | 10 — Risk Assessment & MCE |
 | `_L11_ClaudeCodeMapDemo.html` | 11 — The Future of GIS |
 
@@ -33,10 +33,10 @@ PDF exports of the lecture decks (slides only, no speaker notes) live in `lectur
 | `lectures/Lecture03_SpatialDataModels.pdf` | Lecture 3 — Spatial Data Models |
 | `lectures/Lecture04_CRS_Projections.pdf` | Lecture 4 — CRS & Projections |
 | `lectures/Lecture05_SpatialRelationships.pdf` | Lecture 5 — Spatial Relationships |
-| `lectures/Lecture06_VectorAnalysis.pdf` | Lecture 6 — Vector Analysis |
-| `lectures/Lecture07_CartographyEssentials.pdf` | Lecture 7 — Cartography Essentials |
-| `lectures/Lecture08_RasterAnalysis.pdf` | Lecture 8 — Raster Analysis |
-| `lectures/Lecture09_HydrologicalAnalysis.pdf` | Lecture 9 — Hydrological Analysis |
+| `lectures/Lecture06_CartographyEssentials.pdf` | Lecture 6 — Cartography Essentials |
+| `lectures/Lecture07_VectorAnalysis.pdf` | Lecture 7 — Vector Analysis |
+| `lectures/Lecture08_HydrologicalAnalysis.pdf` | Lecture 8 — Hydrological Analysis |
+| `lectures/Lecture09_RasterAnalysis.pdf` | Lecture 9 — Raster Analysis |
 | `lectures/Lecture10_RiskAssessmentMCE.pdf` | Lecture 10 — Risk Assessment & MCE |
 | `lectures/Lecture11_FutureOfGIS.pdf` | Lecture 11 — The Future of GIS |
 
