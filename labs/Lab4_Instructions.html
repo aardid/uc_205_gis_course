@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENCN205 — Lab 4: Network Routing</title>
+<style>
+  :root {
+    --ink: #1e2b33;
+    --soft: #5a6b74;
+    --accent: #0f6b5e;
+    --accent-bg: #e8f2f0;
+    --hairline: #d9e1e4;
+    --warn-bg: #fdf3e0;
+    --warn-edge: #c9932e;
+    --code-bg: #eef2f3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", -apple-system, Arial, sans-serif;
+    color: var(--ink);
+    background: #f6f8f8;
+    line-height: 1.55;
+  }
+  main { max-width: 54rem; margin: 0 auto; padding: 0 1.25rem 4rem; }
+  header {
+    background: var(--accent);
+    color: #fff;
+    padding: 2rem 0 1.5rem;
+  }
+  header .inner { max-width: 54rem; margin: 0 auto; padding: 0 1.25rem; }
+  header h1 { margin: 0 0 0.3rem; font-size: 1.7rem; }
+  header p { margin: 0; opacity: 0.9; }
+  .badge {
+    display: inline-block; background: rgba(255,255,255,0.18);
+    border-radius: 999px; padding: 0.15rem 0.7rem; font-size: 0.8rem;
+    margin-bottom: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  h2 {
+    font-size: 1.25rem; margin: 2.4rem 0 0.6rem;
+    padding-top: 1.2rem; border-top: 1px solid var(--hairline);
+  }
+  h2 .step {
+    display: inline-block; background: var(--accent); color: #fff;
+    border-radius: 50%; width: 1.7rem; height: 1.7rem; line-height: 1.7rem;
+    text-align: center; font-size: 0.95rem; margin-right: 0.5rem;
+  }
+  h3 { font-size: 1.02rem; margin: 1.4rem 0 0.3rem; color: var(--accent); }
+  code, pre {
+    font-family: Consolas, "Cascadia Code", monospace;
+    background: var(--code-bg); border-radius: 4px;
+  }
+  code { padding: 0.1em 0.35em; font-size: 0.9em; }
+  pre {
+    padding: 0.8rem 1rem; overflow-x: auto;
+    border: 1px solid var(--hairline); font-size: 0.88rem;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; background: #fff; }
+  th, td { text-align: left; padding: 0.5rem 0.7rem; border: 1px solid var(--hairline); vertical-align: top; }
+  th { background: var(--accent-bg); }
+  .note {
+    background: var(--accent-bg); border-left: 4px solid var(--accent);
+    border-radius: 0 6px 6px 0; padding: 0.7rem 1rem; margin: 1rem 0;
+  }
+  .warn {
+    background: var(--warn-bg); border-left: 4px solid var(--warn-edge);
+    border-radius: 0 6px 6px 0; padding: 0.7rem 1rem; margin: 1rem 0;
+  }
+  a { color: var(--accent); }
+  .meta { color: var(--soft); font-size: 0.9rem; }
+  footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--hairline); color: var(--soft); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <div class="badge">ENCN205 · GIS Component · Lab 4</div>
+    <h1>Lab 4: Network Routing — Shortest Paths on the Christchurch Road Network</h1>
+    <p>University of Canterbury · Te Whare Wānanga o Waitaha</p>
+  </div>
+</header>
+
+<main>
+
+<p class="meta"><strong>Duration:</strong> 2–3 hours &nbsp;·&nbsp;
+<strong>Format:</strong> Python (Jupyter notebook) &nbsp;·&nbsp;
+<strong>Prerequisites:</strong> Labs 1–3 &nbsp;·&nbsp;
+<strong>Assessment:</strong> sign-off quiz on LEARN</p>
+
+<h2><span class="step">1</span>Learning Objectives</h2>
+
+<ul>
+  <li>Explain how a road network is represented as a graph of nodes, edges and weights</li>
+  <li>Build a graph (a Python dictionary) from a GeoDataFrame of road segments</li>
+  <li>Implement Dijkstra's shortest-path algorithm from pseudocode and test it</li>
+  <li>Snap real-world locations to the nearest network node and route between them</li>
+  <li>Compare the shortest (distance) and fastest (time) routes</li>
+  <li>Model a disruption — bridge closures — and quantify the detour it causes</li>
+  <li>Compute and map a travel-time service area (isochrone)</li>
+</ul>
+
+<h2><span class="step">2</span>Engineering Scenario</h2>
+
+<p>You work for the emergency management team at <strong>Christchurch City Council</strong>. On
+22 February 2011 several bridges over the Avon River / Ōtākaro in the eastern suburbs were damaged
+and closed, cutting the usual routes between New Brighton and the central city. You will build a
+routing tool — the engine behind every navigation app — on the real Christchurch road network
+(about 970 km of road from OpenStreetMap), then use it to measure how much the closures lengthened
+the trip from the eastern suburbs to Christchurch Hospital.</p>
+
+<div class="note">Start as usual: <code>conda activate encn205</code>, then <code>jupyter lab</code>,
+then open <code>Lab4_NetworkRouting.ipynb</code> and run the cells in order with
+<strong>Shift + Enter</strong>. The data file <code>data/christchurch_roads.gpkg</code> must sit in a
+<code>data</code> folder next to the notebook.</div>
+
+<h2><span class="step">3</span>Step-by-Step Instructions</h2>
+
+<h3>Section 1: Setup and Loading the Road Network</h3>
+<p>Load the four layers of <code>christchurch_roads.gpkg</code> (edges, nodes, places, rivers) and
+plot an overview map showing the network, the rivers and every bridge that spans a river.</p>
+
+<h3>Section 2: From Roads to a Graph</h3>
+<p>Learn the graph vocabulary — nodes, edges, weights — and build an <em>adjacency dictionary</em>
+<code>graph[u][v] = weight</code> from the edges layer. <strong>Your turn:</strong> build a second
+graph weighted by travel time and compare it with the distance-weighted one.</p>
+
+<h3>Section 3: Dijkstra's Algorithm</h3>
+<p>Read the pseudocode, follow the hand-worked trace on a six-node toy network, then
+<strong>write the algorithm yourself</strong> by filling in the selection and relaxation steps.
+A test cell checks your function against the worked example — do not move on until it passes.</p>
+
+<h3>Section 4: Routing on the Real Network</h3>
+<p>Snap places to their nearest node, then route New Brighton Pier to Christchurch Hospital on the
+time graph and on the distance graph. Compare the two routes and read the street list.
+<strong>Your turn:</strong> repeat for Sumner Beach and quantify the minutes lost on the
+shortest-distance route.</p>
+
+<h3>Section 5: Interactive Map</h3>
+<p>Draw both routes on a zoomable web map with <code>.explore()</code>, reprojecting to WGS84 first.</p>
+
+<h3>Section 6: Disruption — The 2011 Bridge Closures</h3>
+<p>List the road bridges over the Avon, close Pages Road and reroute. <strong>Your turn:</strong>
+close the six eastern bridges at once, reroute New Brighton Police Station to the hospital, report
+the extra minutes and map the detour. Then rank the bridges by the delay each one causes on its own.</p>
+
+<h3>Section 7: Service Area</h3>
+<p>Run Dijkstra without a target to get the drive time from the hospital to every intersection, and
+map it as an isochrone. A second map shows the extra minutes caused by the closures.</p>
+
+<h3>Section 8: Summary and Reflection</h3>
+<p>Review the key ideas, then answer the reflection questions — they are good preparation for the
+sign-off quiz and the exam.</p>
+
+<h2 id="signoff"><span class="step">4</span>Assessment: Lab Sign-Off</h2>
+
+<div class="warn"><strong>This lab is not complete until you have submitted your sign-off to LEARN.</strong></div>
+
+<h3>Step 1 — Self-check</h3>
+<p>Before you start the quiz, make sure you can do each of these:</p>
+<ul>
+  <li>Built distance- and time-weighted graphs from the edges layer</li>
+  <li>Implemented <code>dijkstra()</code> and passed the toy-network tests</li>
+  <li>Routed between two real places and explained why the fastest and shortest routes differ</li>
+  <li>Modelled the 2011 bridge closures and reported the extra travel time</li>
+  <li>Interpreted the service-area (isochrone) map</li>
+</ul>
+
+<h3>Step 2 — Take the sign-off quiz</h3>
+<ol>
+  <li>Download <strong>Lab4_SignOff.html</strong> from LEARN and open it in your web browser.</li>
+  <li>Enter your full name and University ID, then answer the <strong>10 questions</strong>.
+      Keep the notebook open — several questions ask about numbers you computed.</li>
+  <li>You need <strong>8 out of 10</strong> to pass. You can retake it as often as you like — each
+      attempt draws a new set of questions, and every answer comes with an explanation.</li>
+  <li>When you pass, click <strong>Download Sign-Off PNG</strong>. This saves a file called
+      <code>ENCN205_Lab4_&lt;yourID&gt;.png</code>.</li>
+</ol>
+
+<h3>Step 3 — Submit</h3>
+<p>Upload <code>ENCN205_Lab4_&lt;yourID&gt;.png</code> to the <strong>Lab 4 Sign-Off</strong>
+submission on LEARN.</p>
+
+<div class="note">The PNG records your name, ID, score, and a timestamp inside the QR code.
+It's your proof of completion — show it to your tutor if they ask.</div>
+
+<h2 id="troubleshooting">Tips and Troubleshooting</h2>
+
+<table>
+  <tr><th>Symptom</th><th>Fix</th></tr>
+  <tr><td>The toy-network <code>assert</code> fails</td>
+      <td>Add <code>print(current, distance)</code> inside the loop and compare each pass with the
+          hand-worked table. Most errors are in the relaxation test: it must be
+          <code>new_distance &lt; distance[neighbour]</code>.</td></tr>
+  <tr><td><code>KeyError</code> when routing on the real network</td>
+      <td>You are mixing graphs: a node removed by a closure is not in that graph. Route with the
+          graph you built from the same edges.</td></tr>
+  <tr><td><code>reconstruct_path</code> returns an empty list</td>
+      <td>The target was never reached — check that you passed the right graph and that the
+          source and target are node ids (integers), not place names.</td></tr>
+  <tr><td>A route takes many seconds</td>
+      <td>Normal for a full service-area run (about a second). If a single route is slow, make
+          sure your loop <code>break</code>s when <code>current == target</code>.</td></tr>
+  <tr><td>Interactive map shows nothing or is untrusted</td>
+      <td>Re-run the cell; convert to WGS84 with <code>.to_crs(epsg=4326)</code> before
+          <code>.explore()</code>. Offline, the tiles will not load but the routes still draw.</td></tr>
+  <tr><td>Snapped node is far from the place</td>
+      <td>Expected for a few hundred metres — places sit beside roads, not on intersections.
+          Use <code>nodes.distance(point).idxmin()</code> exactly as in Section 4.</td></tr>
+</table>
+
+<footer>
+ENCN205 — Applied Data Analysis for Civil and Natural Systems · GIS component ·
+Lab 4 (sign-off quiz on LEARN) · Questions: LEARN forum or
+alberto.ardid@canterbury.ac.nz
+</footer>
+
+</main>
+</body>
+</html>

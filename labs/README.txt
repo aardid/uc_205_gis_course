@@ -1,4 +1,4 @@
-ENCN205 — GIS Labs (Lab 0 to Lab 3), self-contained package
+ENCN205 — GIS Labs (Lab 0 to Lab 4), self-contained package
 =============================================================
 
 Work through the labs in order. For each lab:
@@ -20,10 +20,14 @@ Contents
   Lab3_Instructions.html
   Lab3_RasterAnalysis.ipynb   Raster analysis (DEM, slope, hazards)
 
+  Lab4_Instructions.html
+  Lab4_NetworkRouting.ipynb   Network routing (Dijkstra, bridge closures)
+
   data/                       Datasets used by the notebooks
     christchurch.gpkg           (Lab 2)
     banks_peninsula_dem.npy     (Lab 3)
     banks_peninsula_meta.json   (Lab 3)
+    christchurch_roads.gpkg     (Lab 4)
 
 Requirements
 ------------
