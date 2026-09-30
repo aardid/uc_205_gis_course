@@ -3,58 +3,80 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>L08 Demo: Hydrological Analysis — Buller River Catchment Explorer</title>
-<link rel="stylesheet" href="lib/leaflet/leaflet.css" />
-<script src="lib/leaflet/leaflet.js"></script>
+<title>L08 Demo: Hydrological Analysis — From DEM to Catchment</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; height: 100vh; display: flex; flex-direction: column; background: #f5f5f5; }
-  .header { background: linear-gradient(135deg, #1a5276, #2980b9); color: white; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .header { background: linear-gradient(135deg, #1a5276, #2980b9); color: white; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .header h1 { font-size: 1.2em; font-weight: 600; }
   .header .subtitle { font-size: 0.85em; opacity: 0.9; }
-  .header .badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-size: 0.8em; }
+  .header .badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-size: 0.8em; white-space: nowrap; }
   .main { display: flex; flex: 1; overflow: hidden; }
-  #map { flex: 1; min-width: 0; }
-  .panel { width: 380px; background: white; overflow-y: auto; border-left: 2px solid #e0e0e0; display: flex; flex-direction: column; }
-  .panel-header { background: #2c3e50; color: white; padding: 16px; text-align: center; }
+  #mapWrap { flex: 1; min-width: 0; position: relative; background: #1c2833; overflow: hidden; }
+  #map { position: absolute; inset: 0; cursor: crosshair; touch-action: none; }
+  .panel { width: 390px; background: white; overflow-y: auto; border-left: 2px solid #e0e0e0; display: flex; flex-direction: column; }
+  .panel-header { background: #2c3e50; color: white; padding: 14px 16px; text-align: center; }
   .panel-header h2 { font-size: 1.1em; margin-bottom: 4px; }
   .panel-header p { font-size: 0.8em; opacity: 0.8; }
-  .control-section { padding: 16px; border-bottom: 1px solid #eee; }
+  .control-section { padding: 14px 16px; border-bottom: 1px solid #eee; }
   .control-section h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-
-  .mode-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-  .mode-btn { padding: 6px 12px; border: 2px solid #2980b9; background: white; color: #2980b9; border-radius: 6px; font-size: 0.82em; cursor: pointer; font-weight: 600; transition: all 0.15s; }
+  .control-section h3 .step { display: inline-block; background: #2980b9; color: white; border-radius: 50%; width: 20px; height: 20px; text-align: center; line-height: 20px; font-size: 0.85em; margin-right: 6px; }
+  .mode-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  .mode-btn { padding: 6px 10px; border: 2px solid #2980b9; background: white; color: #2980b9; border-radius: 6px; font-size: 0.8em; cursor: pointer; font-weight: 600; transition: all 0.15s; }
   .mode-btn.active { background: #2980b9; color: white; }
   .mode-btn:hover:not(.active) { background: #d6eaf8; }
-
-  .toggle-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+  .toggle-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
   .toggle-row label { font-size: 0.85em; color: #333; cursor: pointer; }
-  .toggle-row input[type=checkbox] { width: 18px; height: 18px; cursor: pointer; }
-
-  .stats-panel { padding: 12px 16px; background: #f8f9fa; border-bottom: 1px solid #eee; }
-  .stats-panel h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .stat-row { display: flex; justify-content: space-between; font-size: 0.85em; padding: 3px 0; border-bottom: 1px dotted #ddd; }
-  .stat-row span:last-child { font-weight: 700; color: #1a5276; }
-
-  .info-box { background: #eaf2f8; border: 1px solid #2980b9; border-radius: 6px; padding: 12px; margin: 12px 16px; font-size: 0.85em; line-height: 1.5; }
+  .toggle-row input[type=checkbox] { width: 18px; height: 18px; cursor: pointer; flex: none; }
+  .slider-container input[type=range] { width: 100%; margin: 6px 0 2px; }
+  .slider-label { display: flex; justify-content: space-between; font-size: 0.78em; color: #888; }
+  .readout { font-size: 0.9em; color: #1a5276; font-weight: 700; }
+  .hint { font-size: 0.78em; color: #888; margin-top: 6px; line-height: 1.4; }
+  .stat-row { display: flex; justify-content: space-between; font-size: 0.84em; padding: 3px 0; border-bottom: 1px dotted #ddd; }
+  .stat-row span:last-child { font-weight: 700; color: #1a5276; text-align: right; }
+  .stat-row.warn span:last-child { color: #c0392b; }
+  .rational { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 0.82em; color: #333; margin-top: 8px; }
+  .rational input { width: 58px; padding: 2px 4px; border: 1px solid #bbb; border-radius: 4px; font-size: 1em; }
+  .btn-small { margin-top: 8px; padding: 4px 12px; font-size: 0.8em; cursor: pointer; border: 1px solid #aaa; background: #f8f9fa; border-radius: 4px; }
+  #inspector { font-size: 0.8em; color: #333; }
+  #inspector table { border-collapse: collapse; margin: 6px auto; }
+  #inspector td { width: 58px; height: 34px; text-align: center; border: 1px solid #ccc; font-variant-numeric: tabular-nums; }
+  #inspector td.centre { background: #fdebd0; font-weight: 700; }
+  #inspector td.recv { background: #d6eaf8; font-weight: 700; color: #1a5276; }
+  .info-box { background: #eaf2f8; border: 1px solid #2980b9; border-radius: 6px; padding: 12px; margin: 12px 16px; font-size: 0.84em; line-height: 1.5; }
   .info-box strong { color: #1a5276; }
-
+  .workflow { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: 0.74em; margin-top: 6px; }
+  .workflow span.wf { background: white; border: 1px solid #2980b9; border-radius: 10px; padding: 2px 7px; color: #1a5276; }
   .question-section { padding: 16px; flex: 1; }
   .question-section h3 { font-size: 0.9em; color: #2c3e50; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
   .question { background: #f8f9fa; border-left: 4px solid #2980b9; padding: 12px; margin-bottom: 12px; border-radius: 0 6px 6px 0; }
   .question .q-number { font-weight: 700; color: #2980b9; font-size: 0.85em; }
-  .question p { font-size: 0.88em; color: #333; margin-top: 4px; line-height: 1.5; }
+  .question p { font-size: 0.87em; color: #333; margin-top: 4px; line-height: 1.5; }
+  .footer-note { padding: 12px 16px; background: #f0f0f0; font-size: 0.75em; color: #888; text-align: center; border-top: 1px solid #ddd; line-height: 1.5; }
 
-  .footer-note { padding: 12px 16px; background: #f0f0f0; font-size: 0.75em; color: #888; text-align: center; border-top: 1px solid #ddd; }
+  .overlay { position: absolute; background: rgba(255,255,255,0.93); border-radius: 6px; border: 1px solid #ccc; font-size: 0.75em; color: #2c3e50; pointer-events: none; }
+  #legend { left: 10px; bottom: 10px; padding: 8px 10px; line-height: 1.5; max-width: 250px; }
+  #legend .legend-title { font-weight: 700; margin-bottom: 3px; }
+  #legend .item { display: flex; align-items: center; gap: 6px; }
+  #legend .sw { width: 22px; height: 10px; display: inline-block; border-radius: 2px; flex: none; }
+  #legend .ramp { height: 10px; width: 180px; border-radius: 2px; margin: 2px 0; }
+  #legend .ramp-lbl { display: flex; justify-content: space-between; width: 180px; }
+  #north { right: 12px; top: 12px; width: 38px; padding: 4px 0 2px; text-align: center; font-weight: 700; }
+  #scale { right: 12px; bottom: 10px; padding: 5px 8px 4px; }
+  #scale .bar { height: 6px; border: 1.5px solid #2c3e50; border-top: none; background: linear-gradient(90deg, #2c3e50 50%, white 50%); }
+  #scale .lbl { display: flex; justify-content: space-between; margin-top: 1px; }
+  #zoomBtns { position: absolute; left: 10px; top: 10px; display: flex; flex-direction: column; gap: 4px; }
+  #zoomBtns button { width: 30px; height: 30px; font-size: 1.1em; font-weight: 700; border: 1px solid #aaa; background: white; border-radius: 4px; cursor: pointer; color: #2c3e50; }
+  #status { left: 50px; top: 10px; padding: 5px 10px; font-size: 0.8em; }
+  #loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.1em; }
 
-  .legend { background: white; padding: 8px 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.75em; line-height: 1.6; }
-  .legend-title { font-weight: 700; margin-bottom: 4px; color: #2c3e50; }
-  .legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
-  .legend-swatch { width: 24px; height: 10px; border-radius: 2px; display: inline-block; }
-  .legend-line { width: 24px; height: 3px; display: inline-block; border-radius: 2px; }
-
-  #selectedInfo { background: #fef9e7; border: 1px solid #f39c12; border-radius: 6px; padding: 10px; margin: 0 16px 12px; font-size: 0.85em; line-height: 1.5; display: none; }
-  #selectedInfo strong { color: #7d6608; }
+  @media (max-width: 820px) {
+    body { height: auto; }
+    .main { flex-direction: column; overflow: visible; }
+    #mapWrap { height: 70vh; flex: none; }
+    .panel { width: 100%; border-left: none; border-top: 2px solid #e0e0e0; }
+    .header { flex-direction: column; align-items: flex-start; padding: 10px 16px; }
+  }
 </style>
 </head>
 <body>
@@ -62,285 +84,594 @@
 <div class="header">
   <div>
     <h1>ENCN205 — Lecture 08: Hydrological Analysis</h1>
-    <div class="subtitle">Interactive Demo: Buller River Catchment Explorer — Stream Networks &amp; Sub-catchments</div>
+    <div class="subtitle">Interactive Demo: From DEM to Catchment — sinks, D8 flow direction, flow accumulation, streams &amp; pour points</div>
   </div>
   <div class="badge">~10 min activity</div>
 </div>
 
 <div class="main">
-  <div id="map"></div>
+  <div id="mapWrap">
+    <canvas id="map"></canvas>
+    <div id="loading">Computing flow routing…</div>
+    <div id="zoomBtns">
+      <button onclick="zoomBy(1.5)" title="Zoom in">+</button>
+      <button onclick="zoomBy(1/1.5)" title="Zoom out">&minus;</button>
+      <button onclick="resetView()" title="Reset view" style="font-size:0.8em">&#8962;</button>
+    </div>
+    <div id="status" class="overlay">Click a stream to place a pour point · scroll to zoom · drag to pan</div>
+    <div id="legend" class="overlay"></div>
+    <div id="north" class="overlay"><div style="font-size:1.4em;line-height:1">&#9650;</div>N</div>
+    <div id="scale" class="overlay"><div class="bar" id="scaleBar"></div><div class="lbl"><span>0</span><span id="scaleLbl">500 m</span></div></div>
+  </div>
 
   <div class="panel">
     <div class="panel-header">
-      <h2>Buller River Catchment</h2>
-      <p>Stream networks &amp; sub-catchments at two Strahler orders</p>
+      <h2>Charteris Bay &amp; Mt Herbert</h2>
+      <p>Real LINZ 8 m DEM · 500 × 500 cells · every step computed live</p>
     </div>
 
     <div class="control-section">
-      <h3>Strahler Order</h3>
+      <h3>View</h3>
       <div class="mode-btns">
-        <button class="mode-btn active" id="btnOrder2" onclick="setOrder(2)">Order 2+ (3,241 reaches)</button>
-        <button class="mode-btn" id="btnOrder3" onclick="setOrder(3)">Order 3+ (1,458 reaches)</button>
+        <button class="mode-btn active" data-view="elev" onclick="setView('elev')">Elevation</button>
+        <button class="mode-btn" data-view="dir" onclick="setView('dir')">Flow direction</button>
+        <button class="mode-btn" data-view="acc" onclick="setView('acc')">Flow accumulation</button>
       </div>
-      <div style="font-size:0.78em;color:#888;margin-top:4px;">Higher order = fewer, larger streams and catchments.</div>
+      <div class="hint">Hover any cell to see its 3 × 3 neighbourhood and where D8 sends its water (below).</div>
     </div>
 
     <div class="control-section">
-      <h3>Layers</h3>
-      <div class="toggle-row">
-        <input type="checkbox" id="chkStreams" checked onchange="updateLayers()">
-        <label for="chkStreams">Stream network</label>
+      <h3><span class="step">1</span>Condition the DEM</h3>
+      <div style="font-size:0.82em;color:#333;margin-bottom:6px">Vertical precision the DEM is stored at:</div>
+      <div class="mode-btns" style="margin-bottom:8px">
+        <button class="mode-btn prec-btn active" data-prec="0" onclick="setPrecision(0)">Original (float)</button>
+        <button class="mode-btn prec-btn" data-prec="0.1" onclick="setPrecision(0.1)">0.1 m</button>
+        <button class="mode-btn prec-btn" data-prec="1" onclick="setPrecision(1)">1 m (integer)</button>
       </div>
       <div class="toggle-row">
-        <input type="checkbox" id="chkCatchments" onchange="updateLayers()">
-        <label for="chkCatchments">Sub-catchment boundaries</label>
+        <input type="checkbox" id="chkFill" checked onchange="onFillChange()">
+        <label for="chkFill"><strong>Fill sinks</strong> before routing</label>
       </div>
-      <div style="font-size:0.78em;color:#888;margin-top:6px;">Click a <strong>stream reach</strong> to highlight its paired sub-catchment.</div>
+      <div class="stat-row"><span>Sinks in raw DEM (no downhill neighbour):</span><span id="statPits">–</span></div>
+      <div class="stat-row"><span>Cells raised to drain:</span><span id="statFilled">–</span></div>
+      <div class="stat-row"><span>Deepest fill:</span><span id="statFillMax">–</span></div>
+      <div class="hint" id="fillHint">Sinks are filled: every cell drains, step by step, to the sea or the map edge.</div>
     </div>
 
-    <div id="selectedInfo">
-      <strong>Selected:</strong> <span id="selectedText"></span>
-      <br><button onclick="clearSelection()" style="margin-top:6px;padding:3px 10px;font-size:0.8em;cursor:pointer;">Clear</button>
+    <div class="control-section">
+      <h3><span class="step">2</span>Extract streams</h3>
+      <div class="slider-container">
+        <div>Stream threshold: <span class="readout" id="threshLbl">–</span></div>
+        <input type="range" id="thresh" min="0" max="1000" value="520" oninput="onThresh()">
+        <div class="slider-label"><span>10 cells (dense)</span><span>50,000 cells (main stems)</span></div>
+      </div>
+      <div class="toggle-row"><input type="checkbox" id="chkStreams" checked onchange="render()"><label for="chkStreams">Extracted streams (accumulation &ge; threshold)</label></div>
+      <div class="toggle-row"><input type="checkbox" id="chkOsm" onchange="render()"><label for="chkOsm">Mapped streams from OpenStreetMap <span style="color:#d35400;font-weight:700">(orange)</span></label></div>
+      <div class="stat-row"><span>Stream network length:</span><span id="statLen">–</span></div>
+      <div class="stat-row"><span>Drainage density:</span><span id="statDD">–</span></div>
     </div>
 
-    <div class="stats-panel">
-      <h3>Network Statistics</h3>
-      <div class="stat-row"><span>Strahler order:</span><span id="statOrder">2+</span></div>
-      <div class="stat-row"><span>Stream reaches:</span><span id="statStreams">3,241</span></div>
-      <div class="stat-row"><span>Sub-catchments:</span><span id="statCatchments">3,241</span></div>
-      <div class="stat-row"><span>Catchment area:</span><span>~6,500 km&sup2;</span></div>
-      <div class="stat-row"><span>Data source:</span><span>NIWA 2020</span></div>
+    <div class="control-section">
+      <h3><span class="step">3</span>Delineate a catchment</h3>
+      <div class="toggle-row">
+        <input type="checkbox" id="chkSnap" checked onchange="if (pour.clicked >= 0) placePour(pour.clicked)">
+        <label for="chkSnap">Snap pour point to highest accumulation within 40 m</label>
+      </div>
+      <div class="hint" style="margin-top:2px">Click on the map to drop a pour point (outlet). All cells that drain to it are traced upstream.</div>
+      <div id="catchStats" style="display:none;margin-top:8px">
+        <div class="stat-row"><span>Pour point moved by snapping:</span><span id="statSnap">–</span></div>
+        <div class="stat-row"><span>Catchment area:</span><span id="statArea">–</span></div>
+        <div class="stat-row"><span>Relief (highest − outlet):</span><span id="statRelief">–</span></div>
+        <div class="rational">
+          Rational method: C <input type="number" id="ratC" value="0.35" step="0.05" min="0" max="1" oninput="updateRational()">
+          i <input type="number" id="ratI" value="40" step="5" min="0" oninput="updateRational()"> mm/h
+        </div>
+        <div class="stat-row" style="margin-top:4px"><span>Peak flow Q = C·i·A / 3.6:</span><span id="statQ">–</span></div>
+        <button class="btn-small" onclick="clearPour()">Clear pour point</button>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <h3>Cell inspector (D8)</h3>
+      <div id="inspector"><span class="hint">Hover over the map…</span></div>
     </div>
 
     <div class="info-box">
-      <strong>Strahler stream ordering:</strong> Headwater streams with no tributaries are <strong>order 1</strong>. When two streams of the same order join, the result is one order higher. When streams of different order join, the higher order continues. This data shows order 2+ and order 3+ networks for the Buller River, NZ's second-largest river by discharge.
+      <strong>The workflow you are running:</strong>
+      <div class="workflow">
+        <span class="wf">DEM</span>&rarr;<span class="wf">Fill sinks</span>&rarr;<span class="wf">D8 flow direction</span>&rarr;<span class="wf">Flow accumulation</span>&rarr;<span class="wf">Threshold</span>&rarr;<span class="wf">Streams</span>&rarr;<span class="wf">Pour point</span>&rarr;<span class="wf">Catchment</span>
+      </div>
+      <div style="margin-top:8px">Each step uses the output of the one before, so an error early on (an unfilled sink, a pour point off the channel) carries through to the catchment boundary.</div>
     </div>
 
     <div class="question-section">
       <h3>Guided Questions</h3>
-
       <div class="question">
-        <span class="q-number">Q1</span>
-        <p>Toggle between <strong>Order 2+</strong> and <strong>Order 3+</strong>. How many stream reaches disappear? What does this tell you about the structure of a drainage network — are most reaches high-order or low-order?</p>
+        <span class="q-number">Q1 — Accumulation</span>
+        <p>Switch to <strong>Flow accumulation</strong>. Hover over a ridge crest, then a valley floor. What values do you get? Now look at <strong>Flow direction</strong> in the inspector: which neighbour does D8 pick, and why that one?</p>
       </div>
-
       <div class="question">
-        <span class="q-number">Q2</span>
-        <p>Turn on <strong>Sub-catchment boundaries</strong>. Click several stream reaches in different parts of the catchment. How does sub-catchment size relate to stream order? Why are headwater catchments smaller than downstream ones?</p>
+        <span class="q-number">Q2 — Threshold</span>
+        <p>Turn on the <strong>OpenStreetMap streams</strong>. Find the threshold where the extracted network best matches them. Write down the threshold and the network length. Where does the DEM put a stream that the map doesn't have, and which one is wrong?</p>
       </div>
-
       <div class="question">
-        <span class="q-number">Q3</span>
-        <p>Look at the <strong>drainage density</strong> (how closely spaced the streams are). Is it uniform across the catchment? What factors — geology, rainfall, slope — might explain spatial variation in drainage density?</p>
+        <span class="q-number">Q3 — Sinks</span>
+        <p>Untick <strong>Fill sinks</strong> and note the number of sinks. Now switch the precision to <strong>0.1 m</strong>, then <strong>1 m</strong>. It is the same terrain, so where did the extra sinks come from? Place a pour point near the coast on the largest stream and compare its area with filling on and off. Are most sinks real depressions or DEM artefacts?</p>
       </div>
-
       <div class="question">
-        <span class="q-number">Q4</span>
-        <p>The Buller catchment is ~6,500 km&sup2;. At <strong>Order 2+</strong>, there are 3,241 sub-catchments. What is the average sub-catchment area? At <strong>Order 3+</strong> (1,458 sub-catchments), what is it? Why does the average change?</p>
+        <span class="q-number">Q4 — Pour points</span>
+        <p>Drop a pour point on a stream. Then untick <strong>Snap</strong> and click one or two cells beside the channel. Why does the catchment collapse? How does this explain a delineated catchment boundary that runs straight through a gully?</p>
       </div>
-
       <div class="question">
-        <span class="q-number">Q5</span>
-        <p>Strahler ordering is used in hydrology to classify stream importance. Why might a civil engineer care about stream order when designing a <strong>bridge</strong> or <strong>culvert</strong>? What design parameter scales with stream order?</p>
+        <span class="q-number">Q5 — Culvert design</span>
+        <p>Imagine a coastal road crossing the main stream. Delineate its catchment and read the rational-method peak flow. Move the culvert 500 m upstream: how do the area and Q change? Which input (C, i or A) would you trust least, and why?</p>
       </div>
     </div>
 
     <div class="footer-note">
-      ENCN205 Applied Data Analysis — GIS Component<br>
-      University of Canterbury | Data: NIWA Buller River Network (2020)
+      ENCN205 Applied Data Analysis — GIS Component · University of Canterbury<br>
+      DEM: LINZ NZ 8 m Digital Elevation Model 2012 (CC BY 4.0), NZTM2000 · Mapped streams &amp; coast: &copy; OpenStreetMap contributors (ODbL)
     </div>
   </div>
 </div>
 
-<script src="data/buller_streams2.js"></script>
-<script src="data/buller_streams3.js"></script>
-<script src="data/buller_catchments2.js"></script>
-<script src="data/buller_catchments3.js"></script>
-<script src="data/buller_meta.js"></script>
-
+<script src="data/l08_dem.js"></script>
+<script src="data/l08_osm_streams.js"></script>
 <script>
-var map = L.map('map', {
-  zoomControl: true,
-  attributionControl: true
-}).setView(bullerMeta.center, 9);
+// ======================= CORE (hydrology; no DOM) =======================
+var R = l08Dem.rows, C = l08Dem.cols, N = R * C, PX = l08Dem.px;
+// D8 neighbours, clockwise from east; codes are the ESRI flow-direction values
+var DC = [1, 1, 0, -1, -1, -1, 0, 1], DR = [0, 1, 1, 1, 0, -1, -1, -1];
+var DIST = [1, Math.SQRT2, 1, Math.SQRT2, 1, Math.SQRT2, 1, Math.SQRT2];
+var CODE = [1, 2, 4, 8, 16, 32, 64, 128];
+var ARROW = ['→', '↘', '↓', '↙', '←', '↖', '↑', '↗'];
+var OFF_EDGE = -2, SINK = -3;
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors',
-  maxZoom: 16
-}).addTo(map);
-
-map.fitBounds(bullerMeta.bounds, { padding: [20, 20] });
-
-var currentOrder = 2;
-var streamLayerGroup = null;
-var catchmentLayerGroup = null;
-var highlightLayer = null;
-var selectedCatId = null;
-
-var streamColors = ['#1a5276','#2471a3','#2e86c1','#3498db','#5dade2','#85c1e9','#aed6f1'];
-
-function hashColor(id) {
-  return streamColors[Math.abs(id * 2654435761) % streamColors.length];
+function decodeDem() {
+  var bin = atob(l08Dem.b64), bytes = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  var f32 = new Float32Array(bytes.buffer), z = new Float64Array(N);
+  for (var j = 0; j < N; j++) z[j] = f32[j];
+  return z;
 }
 
-function getStreamData() {
-  return currentOrder === 2 ? bullerStreams2 : bullerStreams3;
-}
-function getCatchData() {
-  return currentOrder === 2 ? bullerCatchments2 : bullerCatchments3;
-}
-
-function buildStreamLayer() {
-  if (streamLayerGroup) map.removeLayer(streamLayerGroup);
-  var data = getStreamData();
-
-  streamLayerGroup = L.geoJSON(data, {
-    style: function(f) {
-      var isSelected = f.properties.cat_id === selectedCatId;
-      return {
-        color: isSelected ? '#e74c3c' : '#1a5276',
-        weight: isSelected ? 4 : 1.8,
-        opacity: isSelected ? 1 : 0.7
-      };
-    },
-    onEachFeature: function(f, layer) {
-      layer.on('click', function() {
-        selectStream(f.properties.cat_id);
-      });
-      layer.on('mouseover', function(e) {
-        if (f.properties.cat_id !== selectedCatId) {
-          e.target.setStyle({ weight: 3, color: '#e67e22', opacity: 1 });
-        }
-      });
-      layer.on('mouseout', function(e) {
-        if (f.properties.cat_id !== selectedCatId) {
-          e.target.setStyle({ weight: 1.8, color: '#1a5276', opacity: 0.7 });
-        }
-      });
-    }
-  });
-
-  if (document.getElementById('chkStreams').checked) {
-    streamLayerGroup.addTo(map);
-  }
-}
-
-function buildCatchmentLayer() {
-  if (catchmentLayerGroup) map.removeLayer(catchmentLayerGroup);
-  var data = getCatchData();
-
-  catchmentLayerGroup = L.geoJSON(data, {
-    style: function(f) {
-      var isSelected = f.properties.cat_id === selectedCatId;
-      return {
-        color: '#555',
-        weight: 0.5,
-        fillColor: isSelected ? '#e74c3c' : hashColor(f.properties.cat_id),
-        fillOpacity: isSelected ? 0.45 : 0.08,
-        opacity: 0.4
-      };
-    },
-    onEachFeature: function(f, layer) {
-      layer.on('click', function() {
-        selectStream(f.properties.cat_id);
-      });
-    }
-  });
-
-  if (document.getElementById('chkCatchments').checked) {
-    catchmentLayerGroup.addTo(map);
-  }
-}
-
-function selectStream(catId) {
-  selectedCatId = catId;
-  buildStreamLayer();
-  buildCatchmentLayer();
-  updateLayers();
-
-  if (highlightLayer) { map.removeLayer(highlightLayer); highlightLayer = null; }
-  var catchData = getCatchData();
-  var matchedFeatures = catchData.features.filter(function(f) { return f.properties.cat_id === catId; });
-  if (matchedFeatures.length > 0) {
-    highlightLayer = L.geoJSON({ type: 'FeatureCollection', features: matchedFeatures }, {
-      style: { color: '#e74c3c', weight: 3, fillColor: '#e74c3c', fillOpacity: 0.35 }
-    }).addTo(map);
-  }
-
-  document.getElementById('selectedInfo').style.display = 'block';
-  document.getElementById('selectedText').textContent =
-    'Reach & sub-catchment ID: ' + catId + ' (Order ' + currentOrder + '+)';
-  updateLegend();
-}
-
-function clearSelection() {
-  selectedCatId = null;
-  if (highlightLayer) { map.removeLayer(highlightLayer); highlightLayer = null; }
-  buildStreamLayer();
-  buildCatchmentLayer();
-  updateLayers();
-  document.getElementById('selectedInfo').style.display = 'none';
-  updateLegend();
-}
-
-function setOrder(order) {
-  currentOrder = order;
-  document.getElementById('btnOrder2').classList.toggle('active', order === 2);
-  document.getElementById('btnOrder3').classList.toggle('active', order === 3);
-  clearSelection();
-
-  document.getElementById('statOrder').textContent = order + '+';
-  var sc = order === 2 ? bullerMeta.streams2_count : bullerMeta.streams3_count;
-  var cc = order === 2 ? bullerMeta.catch2_count : bullerMeta.catch3_count;
-  document.getElementById('statStreams').textContent = sc.toLocaleString();
-  document.getElementById('statCatchments').textContent = cc.toLocaleString();
-
-  buildStreamLayer();
-  buildCatchmentLayer();
-  updateLayers();
-  updateLegend();
-}
-
-function updateLayers() {
-  if (streamLayerGroup) {
-    if (document.getElementById('chkStreams').checked) {
-      if (!map.hasLayer(streamLayerGroup)) streamLayerGroup.addTo(map);
-    } else {
-      if (map.hasLayer(streamLayerGroup)) map.removeLayer(streamLayerGroup);
-    }
-  }
-  if (catchmentLayerGroup) {
-    if (document.getElementById('chkCatchments').checked) {
-      if (!map.hasLayer(catchmentLayerGroup)) catchmentLayerGroup.addTo(map);
-    } else {
-      if (map.hasLayer(catchmentLayerGroup)) map.removeLayer(catchmentLayerGroup);
-    }
-  }
-  if (highlightLayer) {
-    if (!map.hasLayer(highlightLayer)) highlightLayer.addTo(map);
-  }
-}
-
-var legendControl = L.control({ position: 'bottomleft' });
-legendControl.onAdd = function() {
-  var div = L.DomUtil.create('div', 'legend');
-  div.id = 'legendDiv';
-  return div;
+// Binary min-heap on (key, index) for priority-flood
+function Heap(cap) { this.k = new Float64Array(cap); this.v = new Int32Array(cap); this.n = 0; }
+Heap.prototype.push = function (key, val) {
+  var i = this.n++, k = this.k, v = this.v;
+  while (i > 0) { var p = (i - 1) >> 1; if (k[p] <= key) break; k[i] = k[p]; v[i] = v[p]; i = p; }
+  k[i] = key; v[i] = val;
 };
-legendControl.addTo(map);
+Heap.prototype.pop = function () {
+  var k = this.k, v = this.v, top = v[0], n = --this.n, key = k[n], val = v[n], i = 0;
+  while (true) {
+    var l = 2 * i + 1; if (l >= n) break;
+    var r = l + 1, m = (r < n && k[r] < k[l]) ? r : l;
+    if (k[m] >= key) break;
+    k[i] = k[m]; v[i] = v[m]; i = m;
+  }
+  k[i] = key; v[i] = val; return top;
+};
+
+// Priority-Flood + epsilon (Barnes et al. 2014): flood inwards from the sea and the map
+// edge; every cell ends at least EPS above the neighbour it was reached from, so
+// flats and pits all get a downhill path.
+function fillSinks(z, sea) {
+  var EPS = 1e-4, f = new Float64Array(z), closed = new Uint8Array(N), h = new Heap(N);
+  for (var i = 0; i < N; i++) {
+    var r = (i / C) | 0, c = i % C;
+    if (sea[i] || r === 0 || c === 0 || r === R - 1 || c === C - 1) { closed[i] = 1; h.push(f[i], i); }
+  }
+  while (h.n) {
+    var i = h.pop(), r = (i / C) | 0, c = i % C;
+    for (var d = 0; d < 8; d++) {
+      var rr = r + DR[d], cc = c + DC[d];
+      if (rr < 0 || cc < 0 || rr >= R || cc >= C) continue;
+      var n = rr * C + cc; if (closed[n]) continue;
+      closed[n] = 1; if (f[n] < f[i] + EPS) f[n] = f[i] + EPS; h.push(f[n], n);
+    }
+  }
+  return f;
+}
+
+// D8: each land cell sends all its water to the steepest downhill neighbour.
+// rec[i] = receiving cell, OFF_EDGE (border cell with no lower neighbour) or SINK.
+function d8(s, sea) {
+  var rec = new Int32Array(N), dir = new Int8Array(N).fill(-1);
+  for (var i = 0; i < N; i++) {
+    if (sea[i]) { rec[i] = -1; continue; }
+    var r = (i / C) | 0, c = i % C, best = 0, bn = -1, bd = -1;
+    for (var d = 0; d < 8; d++) {
+      var rr = r + DR[d], cc = c + DC[d];
+      if (rr < 0 || cc < 0 || rr >= R || cc >= C) continue;
+      var n = rr * C + cc, slope = (s[i] - s[n]) / DIST[d];
+      if (slope > best) { best = slope; bn = n; bd = d; }
+    }
+    if (bn >= 0) { rec[i] = bn; dir[i] = bd; }
+    else rec[i] = (r === 0 || c === 0 || r === R - 1 || c === C - 1) ? OFF_EDGE : SINK;
+  }
+  return { rec: rec, dir: dir };
+}
+
+// Flow accumulation = number of upstream cells draining through each cell (ridges = 0).
+// A cell is passed downstream once all its donors are done (topological order), so the
+// ridges go first and the outlets last.
+function accumulate(s, rec, sea) {
+  var acc = new Float64Array(N), pending = new Int32Array(N), queue = new Int32Array(N), head = 0, tail = 0;
+  for (var i = 0; i < N; i++) if (!sea[i] && rec[i] >= 0) pending[rec[i]]++;
+  for (var j = 0; j < N; j++) if (!sea[j] && pending[j] === 0) queue[tail++] = j;
+  while (head < tail) {
+    var c = queue[head++], t = rec[c];
+    if (t >= 0 && !sea[t]) { acc[t] += acc[c] + 1; if (--pending[t] === 0) queue[tail++] = t; }
+  }
+  return acc;
+}
+
+// Donor lists (reverse of rec) in compressed form, for tracing upstream from a pour point
+function donors(rec) {
+  var start = new Int32Array(N + 1), list = new Int32Array(N), fillp;
+  for (var i = 0; i < N; i++) if (rec[i] >= 0) start[rec[i] + 1]++;
+  for (var j = 0; j < N; j++) start[j + 1] += start[j];
+  fillp = start.slice(0, N);
+  for (var i2 = 0; i2 < N; i2++) if (rec[i2] >= 0) list[fillp[rec[i2]]++] = i2;
+  return { start: start, list: list };
+}
+
+function upstream(p, don) {
+  var inC = new Uint8Array(N), stack = [p], count = 0; inC[p] = 1;
+  while (stack.length) {
+    var i = stack.pop(); count++;
+    for (var k = don.start[i]; k < don.start[i + 1]; k++) { var d = don.list[k]; if (!inC[d]) { inC[d] = 1; stack.push(d); } }
+  }
+  return { mask: inC, count: count };
+}
+
+// precision: 0 = as supplied, otherwise round elevations to this many metres
+function buildModel(z0, precision) {
+  var z = new Float64Array(N), sea = new Uint8Array(N), land = 0;
+  for (var q = 0; q < N; q++) z[q] = precision ? Math.round(z0[q] / precision) * precision : z0[q];
+  for (var i = 0; i < N; i++) { sea[i] = z[i] <= 0.5 ? 1 : 0; land += 1 - sea[i]; }
+  var filled = fillSinks(z, sea);
+  var raw = d8(z, sea), fil = d8(filled, sea);
+  var pits = 0, raised = 0, maxFill = 0, depress = new Uint8Array(N);
+  for (var j = 0; j < N; j++) {
+    if (raw.rec[j] === SINK) pits++;
+    var dz = filled[j] - z[j];
+    if (dz > 1e-9) { raised++; depress[j] = 1; if (dz > maxFill) maxFill = dz; }
+  }
+  return {
+    z: z, sea: sea, land: land, filled: filled, depress: depress,
+    pits: pits, raised: raised, maxFill: maxFill,
+    raw: { s: z, rec: raw.rec, dir: raw.dir, acc: accumulate(z, raw.rec, sea), don: donors(raw.rec) },
+    fil: { s: filled, rec: fil.rec, dir: fil.dir, acc: accumulate(filled, fil.rec, sea), don: donors(fil.rec) }
+  };
+}
+// ======================= END CORE =======================
+
+var Z0, MODELS = {}, precision = 0;
+var M, S;                    // model, active surface (M.fil or M.raw)
+var view = 'elev', threshold = 1000;
+var pour = { clicked: -1, cell: -1, mask: null, count: 0 };
+var shade, baseCanvas = document.createElement('canvas');
+baseCanvas.width = C; baseCanvas.height = R;
+var cv = document.getElementById('map'), ctx = cv.getContext('2d');
+var vw = { s: 1, ox: 0, oy: 0 };  // screen = cell * s + o
+
+function hillshade(z) {
+  var hs = new Float32Array(N), az = 315 * Math.PI / 180, alt = 45 * Math.PI / 180;
+  var zen = Math.PI / 2 - alt, azm = 2 * Math.PI - az + Math.PI / 2;
+  function Z(r, c) { r = Math.max(0, Math.min(R - 1, r)); c = Math.max(0, Math.min(C - 1, c)); return z[r * C + c]; }
+  for (var r = 0; r < R; r++) for (var c = 0; c < C; c++) {
+    var dzdx = ((Z(r - 1, c + 1) + 2 * Z(r, c + 1) + Z(r + 1, c + 1)) - (Z(r - 1, c - 1) + 2 * Z(r, c - 1) + Z(r + 1, c - 1))) / (8 * PX);
+    var dzdy = ((Z(r + 1, c - 1) + 2 * Z(r + 1, c) + Z(r + 1, c + 1)) - (Z(r - 1, c - 1) + 2 * Z(r - 1, c) + Z(r - 1, c + 1))) / (8 * PX);
+    var slope = Math.atan(Math.sqrt(dzdx * dzdx + dzdy * dzdy)), aspect = Math.atan2(dzdy, -dzdx);
+    var v = Math.cos(zen) * Math.cos(slope) + Math.sin(zen) * Math.sin(slope) * Math.cos(azm - aspect);
+    hs[r * C + c] = Math.max(0, v);
+  }
+  return hs;
+}
+
+function lerpRamp(stops, t) {
+  t = Math.max(0, Math.min(1, t));
+  for (var i = 1; i < stops.length; i++) if (t <= stops[i][0]) {
+    var a = stops[i - 1], b = stops[i], u = (t - a[0]) / (b[0] - a[0] || 1);
+    return [a[1] + u * (b[1] - a[1]), a[2] + u * (b[2] - a[2]), a[3] + u * (b[3] - a[3])];
+  }
+  var l = stops[stops.length - 1]; return [l[1], l[2], l[3]];
+}
+var ELEV_RAMP = [[0, 120, 170, 110], [0.25, 190, 205, 130], [0.5, 215, 190, 140], [0.75, 175, 140, 110], [1, 245, 240, 235]];
+var ACC_RAMP = [[0, 247, 251, 255], [0.35, 158, 202, 225], [0.65, 49, 130, 189], [1, 8, 48, 107]];
+var DIR_COL = [[231, 76, 60], [230, 126, 34], [241, 196, 15], [46, 204, 113], [26, 188, 156], [52, 152, 219], [155, 89, 182], [236, 64, 122]];
+var SEA = [168, 200, 225];
+
+function drawBase() {
+  var img = baseCanvas.getContext('2d').createImageData(C, R), px = img.data;
+  var zmax = 781, lmax = Math.log(S.acc.reduce(function (m, v) { return v > m ? v : m; }, 0) + 1);
+  var showStreams = document.getElementById('chkStreams').checked, fillOn = document.getElementById('chkFill').checked;
+  for (var i = 0; i < N; i++) {
+    var o = 4 * i, rgb;
+    if (M.sea[i]) rgb = SEA;
+    else if (view === 'elev') {
+      var e = lerpRamp(ELEV_RAMP, M.z[i] / zmax), h = 0.45 + 0.65 * shade[i];
+      rgb = [e[0] * h, e[1] * h, e[2] * h];
+    } else if (view === 'dir') {
+      var d = S.dir[i], h2 = 0.75 + 0.35 * shade[i];
+      rgb = d < 0 ? (S.rec[i] === SINK ? [0, 0, 0] : [127, 140, 141]) : [DIR_COL[d][0] * h2, DIR_COL[d][1] * h2, DIR_COL[d][2] * h2];
+    } else {
+      rgb = lerpRamp(ACC_RAMP, Math.log(S.acc[i] + 1) / lmax);
+    }
+    if (!fillOn && !M.sea[i] && M.depress[i] && view !== 'dir') rgb = [rgb[0] * 0.5 + 110, rgb[1] * 0.5, rgb[2] * 0.5 + 90];
+    if (showStreams && !M.sea[i] && S.acc[i] >= threshold) rgb = view === 'acc' ? [230, 57, 70] : [21, 101, 192];
+    if (pour.mask && pour.mask[i]) {
+      var edge = false, r = (i / C) | 0, c = i % C;
+      for (var k = 0; k < 8 && !edge; k += 2) {
+        var rr = r + DR[k], cc = c + DC[k];
+        edge = rr < 0 || cc < 0 || rr >= R || cc >= C || !pour.mask[rr * C + cc];
+      }
+      rgb = edge ? [192, 57, 43] : [rgb[0] * 0.72 + 70, rgb[1] * 0.72 + 12, rgb[2] * 0.72];
+    }
+    if (!fillOn && S.rec[i] === SINK && view !== 'dir') rgb = [0, 0, 0];
+    px[o] = rgb[0]; px[o + 1] = rgb[1]; px[o + 2] = rgb[2]; px[o + 3] = 255;
+  }
+  baseCanvas.getContext('2d').putImageData(img, 0, 0);
+}
+
+function fitCanvas() {
+  var wrap = document.getElementById('mapWrap'), dpr = window.devicePixelRatio || 1;
+  cv.width = wrap.clientWidth * dpr; cv.height = wrap.clientHeight * dpr;
+  cv.style.width = wrap.clientWidth + 'px'; cv.style.height = wrap.clientHeight + 'px';
+}
+function resetView() {
+  var w = cv.width, h = cv.height, s = Math.min(w / C, h / R) * 0.96;
+  vw = { s: s, ox: (w - C * s) / 2, oy: (h - R * s) / 2 }; paint();
+}
+function zoomBy(f, sx, sy) {
+  if (sx === undefined) { sx = cv.width / 2; sy = cv.height / 2; }
+  var s0 = vw.s, s1 = Math.max(Math.min(cv.width / C, cv.height / R) * 0.5, Math.min(s0 * f, 60));
+  vw.ox = sx - (sx - vw.ox) * s1 / s0; vw.oy = sy - (sy - vw.oy) * s1 / s0; vw.s = s1; paint();
+}
+
+function paint() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = '#1c2833'; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(baseCanvas, vw.ox, vw.oy, C * vw.s, R * vw.s);
+  var dpr = window.devicePixelRatio || 1;
+  // zoomed in far enough to see cells: draw each cell's D8 arrow
+  if (vw.s >= 16 * dpr) {
+    var c0 = Math.max(0, Math.floor(-vw.ox / vw.s)), c1 = Math.min(C - 1, Math.ceil((cv.width - vw.ox) / vw.s));
+    var r0 = Math.max(0, Math.floor(-vw.oy / vw.s)), r1 = Math.min(R - 1, Math.ceil((cv.height - vw.oy) / vw.s));
+    ctx.strokeStyle = 'rgba(20,20,20,0.75)'; ctx.fillStyle = 'rgba(20,20,20,0.75)'; ctx.lineWidth = Math.max(1, vw.s / 16);
+    for (var ar = r0; ar <= r1; ar++) for (var ac = c0; ac <= c1; ac++) {
+      var ai = ar * C + ac, d = S.dir[ai];
+      var cx = vw.ox + (ac + 0.5) * vw.s, cy = vw.oy + (ar + 0.5) * vw.s;
+      if (d < 0) {
+        if (S.rec[ai] === SINK) { ctx.beginPath(); ctx.arc(cx, cy, vw.s * 0.18, 0, 7); ctx.fill(); }
+        continue;
+      }
+      var ux = DC[d] / DIST[d], uy = DR[d] / DIST[d], L = vw.s * 0.34;
+      var tx = cx + ux * L, ty = cy + uy * L;
+      ctx.beginPath(); ctx.moveTo(cx - ux * L, cy - uy * L); ctx.lineTo(tx, ty); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(tx, ty);
+      ctx.lineTo(tx - ux * L * 0.55 - uy * L * 0.35, ty - uy * L * 0.55 + ux * L * 0.35);
+      ctx.lineTo(tx - ux * L * 0.55 + uy * L * 0.35, ty - uy * L * 0.55 - ux * L * 0.35);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  if (document.getElementById('chkOsm').checked) {
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    l08Osm.forEach(function (ln) {
+      ctx.beginPath();
+      ln.p.forEach(function (p, k) {
+        var x = vw.ox + p[0] * vw.s, y = vw.oy + p[1] * vw.s;
+        if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+      });
+      if (ln.k === 'coast') { ctx.strokeStyle = 'rgba(44,62,80,0.8)'; ctx.lineWidth = 1.2 * dpr; ctx.setLineDash([4 * dpr, 3 * dpr]); }
+      else { ctx.strokeStyle = '#e67e22'; ctx.lineWidth = 2.4 * dpr; ctx.setLineDash([]); }
+      ctx.stroke();
+    });
+    ctx.setLineDash([]);
+  }
+  if (pour.cell >= 0) {
+    var pr = (pour.cell / C) | 0, pc = pour.cell % C;
+    var x = vw.ox + (pc + 0.5) * vw.s, y = vw.oy + (pr + 0.5) * vw.s;
+    if (pour.clicked !== pour.cell) {
+      var qr = (pour.clicked / C) | 0, qc = pour.clicked % C;
+      ctx.strokeStyle = 'white'; ctx.lineWidth = 1.5 * dpr; ctx.setLineDash([3 * dpr, 3 * dpr]);
+      ctx.beginPath(); ctx.moveTo(vw.ox + (qc + 0.5) * vw.s, vw.oy + (qr + 0.5) * vw.s); ctx.lineTo(x, y); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(vw.ox + (qc + 0.5) * vw.s, vw.oy + (qr + 0.5) * vw.s, 3 * dpr, 0, 7); ctx.fill();
+    }
+    ctx.fillStyle = '#f1c40f'; ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 2 * dpr;
+    ctx.beginPath(); ctx.arc(x, y, 6 * dpr, 0, 7); ctx.fill(); ctx.stroke();
+  }
+  // scale bar: pick a round distance about 1/5 of the view width
+  var mPerScreenPx = PX / vw.s * dpr, target = cv.width / dpr / 5 * mPerScreenPx;
+  var nice = [50, 100, 200, 250, 500, 1000, 2000].reduce(function (b, v) { return Math.abs(v - target) < Math.abs(b - target) ? v : b; });
+  document.getElementById('scaleBar').style.width = (nice / mPerScreenPx) + 'px';
+  document.getElementById('scaleLbl').textContent = nice >= 1000 ? (nice / 1000) + ' km' : nice + ' m';
+}
+
+function render() { drawBase(); paint(); updateLegend(); }
 
 function updateLegend() {
-  var div = document.getElementById('legendDiv');
-  var html = '<div class="legend-title">Buller River Network</div>';
-  html += '<div class="legend-item"><span class="legend-line" style="background:#1a5276"></span> Stream reach (Order ' + currentOrder + '+)</div>';
-  html += '<div class="legend-item"><span class="legend-swatch" style="background:rgba(26,82,118,0.15);border:1px solid #555"></span> Sub-catchment</div>';
-  if (selectedCatId !== null) {
-    html += '<div class="legend-item"><span class="legend-swatch" style="background:rgba(231,76,60,0.45);border:1px solid #e74c3c"></span> Selected catchment</div>';
+  var html = '', fillOn = document.getElementById('chkFill').checked;
+  if (view === 'elev') {
+    html = '<div class="legend-title">Elevation (m)</div><div class="ramp" style="background:linear-gradient(90deg,rgb(120,170,110),rgb(190,205,130),rgb(215,190,140),rgb(175,140,110),rgb(245,240,235))"></div><div class="ramp-lbl"><span>0</span><span>390</span><span>781</span></div>';
+  } else if (view === 'acc') {
+    html = '<div class="legend-title">Flow accumulation (upstream cells, log scale)</div><div class="ramp" style="background:linear-gradient(90deg,#f7fbff,#9ecae1,#3182bd,#08306b)"></div><div class="ramp-lbl"><span>0 (ridges)</span><span>10³</span><span>10⁵</span></div>';
+  } else {
+    html = '<div class="legend-title">D8 flow direction (ESRI code)</div><div style="display:grid;grid-template-columns:repeat(4,auto);gap:2px 8px">';
+    for (var d = 0; d < 8; d++) html += '<div class="item"><span class="sw" style="width:12px;background:rgb(' + DIR_COL[d].join(',') + ')"></span>' + ARROW[d] + ' ' + CODE[d] + '</div>';
+    html += '</div>';
+    if (!fillOn) html += '<div class="item" style="margin-top:3px"><span class="sw" style="background:#000"></span>Sink: nowhere to flow</div>';
   }
-  div.innerHTML = html;
+  if (document.getElementById('chkStreams').checked) html += '<div class="item" style="margin-top:4px"><span class="sw" style="background:' + (view === 'acc' ? '#e63946' : '#1565c0') + '"></span>Extracted stream (&ge; ' + threshold.toLocaleString() + ' cells)</div>';
+  if (document.getElementById('chkOsm').checked) html += '<div class="item"><span class="sw" style="height:3px;background:#e67e22"></span>Mapped stream (OSM)</div>';
+  if (!fillOn && view !== 'dir') html += '<div class="item"><span class="sw" style="background:rgb(170,60,120)"></span>Depression (would be filled)</div><div class="item"><span class="sw" style="background:#000"></span>Sink cell</div>';
+  if (pour.mask) html += '<div class="item"><span class="sw" style="background:rgba(192,57,43,0.35);border:1.5px solid #c0392b"></span>Catchment</div><div class="item"><span class="sw" style="width:12px;height:12px;border-radius:50%;background:#f1c40f;border:2px solid #2c3e50"></span>Pour point</div>';
+  html += '<div class="item" style="margin-top:3px"><span class="sw" style="background:rgb(168,200,225)"></span>Sea (Lyttelton Harbour)</div>';
+  document.getElementById('legend').innerHTML = html;
 }
 
-setOrder(2);
+function fmtArea(cells) {
+  var m2 = cells * PX * PX;
+  return m2 >= 1e6 ? (m2 / 1e6).toFixed(2) + ' km²' : m2 >= 1e4 ? (m2 / 1e4).toFixed(1) + ' ha' : Math.round(m2).toLocaleString() + ' m²';
+}
+
+function onThresh() {
+  var v = +document.getElementById('thresh').value;
+  var raw = Math.pow(10, 1 + v / 1000 * (Math.log10(50000) - 1));
+  var mag = Math.pow(10, Math.floor(Math.log10(raw)) - 1);
+  threshold = Math.round(raw / mag) * mag;
+  document.getElementById('threshLbl').textContent = threshold.toLocaleString() + ' cells = ' + fmtArea(threshold) + ' upstream';
+  updateNetworkStats(); render();
+}
+
+function updateNetworkStats() {
+  var len = 0;
+  for (var i = 0; i < N; i++) {
+    if (M.sea[i] || S.acc[i] < threshold) continue;
+    var t = S.rec[i];
+    len += (t >= 0 && M.sea[t]) || t === OFF_EDGE ? PX / 2 : (S.dir[i] >= 0 ? DIST[S.dir[i]] * PX : 0);
+  }
+  var landKm2 = M.land * PX * PX / 1e6;
+  document.getElementById('statLen').textContent = (len / 1000).toFixed(1) + ' km';
+  document.getElementById('statDD').textContent = (len / 1000 / landKm2).toFixed(2) + ' km/km²';
+}
+
+function setPrecision(p) {
+  document.querySelectorAll('.prec-btn').forEach(function (b) { b.classList.toggle('active', +b.dataset.prec === p); });
+  var go = function () {
+    precision = p;
+    if (!MODELS[p]) MODELS[p] = buildModel(Z0, p);
+    M = MODELS[p]; shade = M.shade || (M.shade = hillshade(M.z));
+    document.getElementById('statPits').textContent = M.pits.toLocaleString();
+    document.getElementById('statFilled').textContent = M.raised.toLocaleString() + ' (' + fmtArea(M.raised) + ')';
+    document.getElementById('statFillMax').textContent = M.maxFill < 0.01 ? '< 0.01 m' : M.maxFill.toFixed(2) + ' m';
+    document.getElementById('loading').style.display = 'none';
+    onFillChange();
+  };
+  if (MODELS[p]) go(); else { document.getElementById('loading').style.display = 'flex'; setTimeout(go, 30); }
+}
+
+function onFillChange() {
+  var on = document.getElementById('chkFill').checked;
+  S = on ? M.fil : M.raw;
+  document.getElementById('fillHint').innerHTML = on
+    ? 'Sinks are filled: every cell drains, step by step, to the sea or the map edge.'
+    : '<span style="color:#c0392b"><strong>Raw DEM:</strong> water reaching a sink (black) stops there, and everything downstream loses it.</span>';
+  if (pour.clicked >= 0) placePour(pour.clicked); else { updateNetworkStats(); render(); }
+}
+
+function placePour(cell) {
+  pour.clicked = cell;
+  var r0 = (cell / C) | 0, c0 = cell % C, best = cell;
+  if (M.sea[cell]) best = -1;
+  if (document.getElementById('chkSnap').checked) {
+    var rad = 5;   // 5 cells = 40 m
+    for (var r = r0 - rad; r <= r0 + rad; r++) for (var c = c0 - rad; c <= c0 + rad; c++) {
+      if (r < 0 || c < 0 || r >= R || c >= C || (r - r0) * (r - r0) + (c - c0) * (c - c0) > rad * rad) continue;
+      var n = r * C + c;
+      if (!M.sea[n] && (best < 0 || S.acc[n] > S.acc[best])) best = n;
+    }
+  }
+  if (best < 0) { document.getElementById('status').textContent = 'That is the sea — click on land, on or near a stream.'; return; }
+  pour.cell = best;
+  var up = upstream(best, S.don);
+  pour.mask = up.mask; pour.count = up.count;
+  var zmax = 0; for (var i = 0; i < N; i++) if (up.mask[i] && M.z[i] > zmax) zmax = M.z[i];
+  var br = (best / C) | 0, bc = best % C;
+  document.getElementById('catchStats').style.display = 'block';
+  document.getElementById('statSnap').textContent = best === cell ? 'not moved' : Math.round(Math.hypot(br - r0, bc - c0) * PX) + ' m';
+  document.getElementById('statArea').textContent = fmtArea(up.count) + '  (' + up.count.toLocaleString() + ' cells)';
+  document.getElementById('statRelief').textContent = Math.round(zmax - M.z[best]) + ' m';
+  document.getElementById('status').textContent = 'Pour point at ' + (l08Dem.e0 + (bc + 0.5) * PX) + ' E, ' + (l08Dem.n0 - (br + 0.5) * PX) + ' N (NZTM)';
+  updateRational(); updateNetworkStats(); render();
+}
+function clearPour() {
+  pour = { clicked: -1, cell: -1, mask: null, count: 0 };
+  document.getElementById('catchStats').style.display = 'none'; render();
+}
+function updateRational() {
+  if (!pour.mask) return;
+  var Cc = +document.getElementById('ratC').value, I = +document.getElementById('ratI').value;
+  var A = pour.count * PX * PX / 1e6, Q = Cc * I * A / 3.6;
+  document.getElementById('statQ').textContent = (Q < 1 ? Q.toFixed(3) : Q.toFixed(2)) + ' m³/s';
+}
+
+function inspect(cell) {
+  var el = document.getElementById('inspector');
+  if (cell < 0) { el.innerHTML = '<span class="hint">Hover over the map…</span>'; return; }
+  var r = (cell / C) | 0, c = cell % C, t = S.rec[cell], html = '<table>';
+  for (var dr = -1; dr <= 1; dr++) {
+    html += '<tr>';
+    for (var dc = -1; dc <= 1; dc++) {
+      var rr = r + dr, cc = c + dc, n = rr * C + cc;
+      if (rr < 0 || cc < 0 || rr >= R || cc >= C) { html += '<td style="background:#eee">edge</td>'; continue; }
+      var cls = (dr === 0 && dc === 0) ? 'centre' : (n === t ? 'recv' : '');
+      html += '<td class="' + cls + '">' + (M.sea[n] ? 'sea' : S.s[n].toFixed(2)) + (n === t ? ' ' + ARROW[S.dir[cell]] : '') + '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+  if (M.sea[cell]) html += '<div style="text-align:center">Sea cell (outlet)</div>';
+  else {
+    var dtxt = S.dir[cell] >= 0 ? ARROW[S.dir[cell]] + ' code ' + CODE[S.dir[cell]] + ', drop ' + (S.s[cell] - S.s[t]).toFixed(2) + ' m'
+      : (t === SINK ? '<strong style="color:#c0392b">SINK: no lower neighbour</strong>' : 'flows off the map edge');
+    html += '<div style="text-align:center;line-height:1.5">Elevation ' + M.z[cell].toFixed(1) + ' m' +
+      (M.filled[cell] - M.z[cell] > 0.005 ? ' (filled to ' + M.filled[cell].toFixed(2) + ')' : '') +
+      '<br>D8 direction: ' + dtxt + '<br>Flow accumulation: <strong>' + S.acc[cell].toLocaleString() + '</strong> cells (' + fmtArea(S.acc[cell] + 1) + ')</div>';
+  }
+  el.innerHTML = html;
+}
+
+function setView(v) {
+  view = v;
+  document.querySelectorAll('[data-view]').forEach(function (b) { b.classList.toggle('active', b.dataset.view === v); });
+  render();
+}
+
+function cellAt(ev) {
+  var rect = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  var x = (ev.clientX - rect.left) * dpr, y = (ev.clientY - rect.top) * dpr;
+  var c = Math.floor((x - vw.ox) / vw.s), r = Math.floor((y - vw.oy) / vw.s);
+  return (r < 0 || c < 0 || r >= R || c >= C) ? -1 : r * C + c;
+}
+
+var drag = null;
+cv.addEventListener('pointerdown', function (e) { drag = { x: e.clientX, y: e.clientY, ox: vw.ox, oy: vw.oy, moved: false }; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointermove', function (e) {
+  if (drag) {
+    var dpr = window.devicePixelRatio || 1, dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+    if (drag.moved) { vw.ox = drag.ox + dx * dpr; vw.oy = drag.oy + dy * dpr; paint(); }
+  }
+  if (M) inspect(cellAt(e));
+});
+cv.addEventListener('pointerup', function (e) {
+  if (drag && !drag.moved && M) { var cell = cellAt(e); if (cell >= 0) placePour(cell); }
+  drag = null;
+});
+cv.addEventListener('wheel', function (e) {
+  e.preventDefault();
+  var rect = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  zoomBy(e.deltaY < 0 ? 1.25 : 0.8, (e.clientX - rect.left) * dpr, (e.clientY - rect.top) * dpr);
+}, { passive: false });
+window.addEventListener('resize', function () {
+  // keep the same cell at the centre and the same zoom relative to "fit"
+  var fit0 = Math.min(cv.width / C, cv.height / R), rel = vw.s / fit0;
+  var cx = (cv.width / 2 - vw.ox) / vw.s, cy = (cv.height / 2 - vw.oy) / vw.s;
+  fitCanvas();
+  var s1 = Math.min(cv.width / C, cv.height / R) * rel;
+  vw = { s: s1, ox: cv.width / 2 - cx * s1, oy: cv.height / 2 - cy * s1 }; paint();
+});
+
+setTimeout(function () {
+  Z0 = decodeDem();
+  fitCanvas(); resetView();
+  MODELS[0] = buildModel(Z0, 0); M = MODELS[0]; S = M.fil; shade = M.shade = hillshade(M.z);
+  onThresh(); setPrecision(0);
+}, 30);
 </script>
 </body>
 </html>
