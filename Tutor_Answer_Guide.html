@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ENCN205 Demo Answer Guide — Tutor Copy</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; color: #333; }
+
+  .header { background: linear-gradient(135deg, #922b21, #c0392b); color: white; padding: 24px 40px; }
+  .header h1 { font-size: 1.6em; }
+  .header p { opacity: 0.9; margin-top: 4px; }
+  .header .warning { background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 6px; margin-top: 12px; font-size: 0.9em; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 24px; }
+
+  .lecture-block { background: white; border-radius: 8px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; }
+  .lecture-header { background: #2c3e50; color: white; padding: 16px 24px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+  .lecture-header h2 { font-size: 1.1em; }
+  .lecture-header .toggle { font-size: 1.2em; transition: transform 0.2s; }
+  .lecture-header.open .toggle { transform: rotate(180deg); }
+
+  .lecture-body { padding: 0 24px 24px; display: none; }
+  .lecture-body.open { display: block; }
+
+  .qa-pair { border-left: 4px solid #2980b9; padding: 12px 16px; margin: 16px 0; background: #f8f9fa; border-radius: 0 6px 6px 0; }
+  .qa-pair .question { font-weight: 600; color: #2c3e50; margin-bottom: 8px; font-size: 0.95em; }
+  .qa-pair .answer { color: #333; line-height: 1.6; font-size: 0.9em; }
+  .qa-pair .answer strong { color: #c0392b; }
+  .qa-pair .answer ul { margin: 6px 0 6px 20px; }
+  .qa-pair .answer li { margin: 3px 0; }
+  .qa-pair .marking { background: #fef9e7; padding: 8px; border-radius: 4px; margin-top: 8px; font-size: 0.85em; color: #7d6608; }
+
+  .print-btn { position: fixed; bottom: 24px; right: 24px; background: #2980b9; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 0.9em; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+  .print-btn:hover { background: #1a5276; }
+
+  @media print {
+    .print-btn { display: none; }
+    .lecture-body { display: block !important; }
+    .lecture-block { break-inside: avoid; }
+    body { background: white; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>ENCN205 — Demo Answer Guide</h1>
+  <p>Tutor Copy — All 10 Lecture Demos</p>
+  <div class="warning">CONFIDENTIAL — This document contains model answers for all demo activities. Do not distribute to students.</div>
+</div>
+
+<div class="container">
+
+<!-- ================================================================== -->
+<!-- LECTURE 01 -->
+<!-- ================================================================== -->
+<div class="lecture-block">
+  <div class="lecture-header" onclick="toggleLecture(this)">
+    <h2>Lecture 01 — Why Location Matters: Layer Explorer</h2>
+    <span class="toggle">&#9660;</span>
+  </div>
+  <div class="lecture-body">
+
+    <div class="qa-pair">
+      <div class="question">Q1: Turn on all layers one at a time. What type of geometry does each layer use — point, line, or polygon?</div>
+      <div class="answer">
+        <ul>
+          <li><strong>Coastline</strong> — LineString (line tracing the shoreline)</li>
+          <li><strong>Roads</strong> — Line (centrelines of road corridors)</li>
+          <li><strong>Elevation Contours</strong> — LineString (lines at elevation intervals, not filled areas)</li>
+          <li><strong>Buildings</strong> — Polygon (footprint outlines of structures)</li>
+          <li><strong>Marae</strong> — Point (location markers)</li>
+          <li><strong>Structures</strong> — Point (Transpower power pylons)</li>
+        </ul>
+      </div>
+      <div class="marking">Award full marks for correctly identifying at least 4 of 6. Accept "line" or "polyline" for coastline/roads/contours; accept "area" for buildings.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q2: Turn on the sea level slider to 2m. Which layers would you need to determine how many buildings are at risk of flooding?</div>
+      <div class="answer">
+        You need at minimum <strong>two layers</strong>:
+        <ul>
+          <li><strong>Flood zone / Elevation contours</strong> — to define the area that would be flooded at 2m sea level rise</li>
+          <li><strong>Buildings</strong> — to identify which structures fall within (intersect) the flood zone</li>
+        </ul>
+        Optionally, you might also want the <strong>coastline</strong> to orient yourself and understand where the sea is relative to the land. This is a fundamental GIS operation: overlaying two layers to find spatial relationships.
+      </div>
+      <div class="marking">Minimum: flood zone + buildings = full marks. Bonus for mentioning the spatial operation (overlay/intersection) needed to combine them.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q3: Set sea level to 1m, then 3m. Describe how the flood extent changes. Is the relationship between sea level and flooded area linear?</div>
+      <div class="answer">
+        The flood extent grows significantly between 1m and 3m, but the relationship is <strong>not linear</strong>. At 1m, only a very narrow coastal strip is affected (~0.06 km²). At 2m, the area jumps dramatically (~2.4 km²) because the low-lying coastal flat behind the dunes becomes inundated. At 3m, it expands further (~3.3 km²) but the rate of increase slows because the land rises more steeply inland.
+        <br><br>
+        This is because <strong>coastal topography is not uniform</strong> — there's a flat zone near the coast (the estuary/dune system) and rising ground further inland. The relationship between sea level and flooded area depends on the shape of the terrain (hypsometric curve).
+      </div>
+      <div class="marking">Key points: (1) non-linear, (2) big jump between 1m and 2m due to flat coastal terrain, (3) link to topography. Accept any reasonable description of the pattern.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q4: A council engineer needs to plan evacuation routes for a coastal flood event. Name three layers from this map they would need, and explain why each matters.</div>
+      <div class="answer">
+        Any three of:
+        <ul>
+          <li><strong>Flood zone / Elevation</strong> — defines which areas will be inundated and which are safe (determines who needs evacuating and where they can go)</li>
+          <li><strong>Roads</strong> — the actual routes people would use to evacuate; need to check which roads remain passable above flood level</li>
+          <li><strong>Buildings</strong> — identifies where people are (residential density) and therefore where evacuation demand is highest</li>
+          <li><strong>Marae</strong> — potential evacuation centres / welfare facilities; culturally significant sites that may need protection</li>
+          <li><strong>Structures</strong> — infrastructure like bridges and sea walls that affect route viability</li>
+        </ul>
+      </div>
+      <div class="marking">Full marks for 3 layers with reasonable justifications. The key insight is that different layers answer different questions — WHERE is the danger, HOW do people move, WHERE are people located.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q5: What is missing from this map that would be important for a full flood risk assessment? Name at least two additional data layers you would want.</div>
+      <div class="answer">
+        Missing layers could include:
+        <ul>
+          <li><strong>Population / census data</strong> — meshblock population counts to estimate how many people are affected</li>
+          <li><strong>High-resolution DEM (raster)</strong> — the contours are coarse; an 8m or 1m LiDAR DEM would give much more accurate flood extents</li>
+          <li><strong>Stormwater / drainage network</strong> — pipes and drains that affect where water goes during flooding</li>
+          <li><strong>Emergency services</strong> — hospitals, fire stations, police stations; proximity to affected areas</li>
+          <li><strong>Land use zoning</strong> — residential vs commercial vs industrial affects vulnerability and response priorities</li>
+          <li><strong>Historical flood extent data</strong> — records of past flood events for calibration</li>
+          <li><strong>Property values</strong> — for economic loss estimation</li>
+        </ul>
+      </div>
+      <div class="marking">Full marks for 2 reasonable layers with brief justification. Strong answers will identify data that addresses a gap in the current analysis (e.g., "we have buildings but not people").</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- LECTURE 02 -->
+<!-- ================================================================== -->
+<div class="lecture-block">
+  <div class="lecture-header" onclick="toggleLecture(this)">
+    <h2>Lecture 02 — Data Quality & Ethics: Quality Impact Explorer</h2>
+    <span class="toggle">&#9660;</span>
+  </div>
+  <div class="lecture-body">
+
+    <div class="qa-pair">
+      <div class="question">Q1: Move the "Elevation Precision" slider from 1m to 5m. How does the flood zone boundary change? What does this tell you about how data resolution affects analysis?</div>
+      <div class="answer">
+        When elevation is rounded to the nearest 5m, the flood zone boundary becomes <strong>much coarser and blocky</strong> — it either massively overestimates flooding (capturing large areas rounded down to 0m) or underestimates it (areas rounded up to 5m escape the threshold). The boundary loses its detailed shape and becomes stepped.
+        <br><br>
+        This demonstrates that <strong>input data quality directly controls output accuracy</strong>. A 5m-precision DEM cannot distinguish between 1m and 4m elevation — critical for flood modelling where 1-2m differences determine which streets flood.
+      </div>
+      <div class="marking">Key insight: coarser elevation data = coarser and less reliable flood extent. Students should connect data precision to decision quality.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q2: Add positional error to the buildings. At what level of error do buildings start appearing in the wrong flood zone? Would this error matter for a resource consent decision?</div>
+      <div class="answer">
+        At around <strong>50-100m positional error</strong>, buildings near the flood zone boundary start being misclassified — buildings actually in the flood zone may appear safe, and vice versa. For resource consent, this absolutely matters: a <strong>building consent</strong> might be wrongly granted for a flood-prone site, or wrongly denied for a safe site.
+        <br><br>
+        In NZ, resource consents under the RMA require reliable spatial data. Consumer-grade GPS (~5-10m accuracy) is usually sufficient for regional planning, but <strong>site-specific decisions need survey-grade accuracy</strong> (~0.01m).
+      </div>
+      <div class="marking">Key points: (1) identify the threshold where misclassification occurs, (2) connect to real decision consequences, (3) mention accuracy standards.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q3: Look at the marae locations on the map. Why might publishing the exact coordinates of these cultural sites raise ethical concerns? How does this relate to Te Mana Raraunga (Māori Data Sovereignty)?</div>
+      <div class="answer">
+        Marae are <strong>culturally significant sites</strong> for Māori communities. Publishing precise locations could:
+        <ul>
+          <li>Enable unwanted visits or cultural tourism without appropriate tikanga (protocols)</li>
+          <li>Expose sites to vandalism or theft of taonga (treasures)</li>
+          <li>Remove iwi/hapū control over who accesses information about their spaces</li>
+        </ul>
+        <strong>Te Mana Raraunga</strong> asserts that Māori have inherent rights over data about Māori people, places, and taonga. This means data about marae should be managed <strong>with the consent and governance of the relevant iwi/hapū</strong>, not simply published openly because it's "public data." The NZ Privacy Act 2020 provides a legal framework, but Māori data sovereignty goes further — it's about rangatiratanga (self-determination) over data.
+      </div>
+      <div class="marking">Strong answers connect location data to cultural sensitivity and demonstrate understanding of Māori data sovereignty beyond just "privacy." Accept reasonable discussion points.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q4: You receive a shapefile of flood extents from 2005. The description says "1m resolution, NZGD2000 datum." Using the fitness-for-purpose test, is this dataset suitable for planning new housing in 2025? List three concerns.</div>
+      <div class="answer">
+        This dataset is likely <strong>NOT fit for purpose</strong>. Three concerns:
+        <ul>
+          <li><strong>Temporal currency</strong> — 20-year-old data doesn't reflect the 2010/2011 Canterbury earthquakes which changed ground levels by up to 0.5m in some coastal areas. The land surface has literally moved.</li>
+          <li><strong>Sea level change</strong> — Since 2005, sea level has risen ~3-4cm and projections have been updated. The flood extents are based on outdated climate scenarios.</li>
+          <li><strong>Land use change</strong> — 20 years of development has changed impervious surfaces, drainage patterns, and building stock. The analysis context has changed even if elevation hasn't.</li>
+        </ul>
+        Additional: resolution (1m is good for this purpose) and datum (NZGD2000 is correct) are acceptable, but the temporal issues are deal-breakers.
+      </div>
+      <div class="marking">Must identify temporal currency as the main issue. Bonus for Canterbury earthquake context. Three distinct concerns required for full marks.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q5: The error propagation formula shows that combining two datasets with 10% error each gives approximately 14% error in the result. If the elevation data has ±0.5m accuracy and the sea level projection has ±0.3m uncertainty, what is the approximate combined uncertainty for the flood boundary?</div>
+      <div class="answer">
+        Using the root-sum-of-squares error propagation formula:
+        <br><br>
+        <strong>Combined uncertainty = √(0.5² + 0.3²) = √(0.25 + 0.09) = √0.34 ≈ ±0.58m</strong>
+        <br><br>
+        This means the flood boundary could be off by nearly 0.6m in elevation, which on flat coastal terrain translates to potentially <strong>hundreds of metres of horizontal uncertainty</strong> in where the flood edge sits. This is why engineers should always report uncertainty alongside their spatial analysis results.
+      </div>
+      <div class="marking">Full marks for correct calculation (≈0.58m). Bonus for connecting vertical uncertainty to horizontal extent on flat ground.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- LECTURE 03 -->
+<!-- ================================================================== -->
+<div class="lecture-block">
+  <div class="lecture-header" onclick="toggleLecture(this)">
+    <h2>Lecture 03 — Spatial Data Models: Vector vs Raster</h2>
+    <span class="toggle">&#9660;</span>
+  </div>
+  <div class="lecture-body">
+
+    <div class="qa-pair">
+      <div class="question">Q1: Toggle between Vector and Raster DEM views. Which representation makes it easier to identify a specific elevation (e.g., the 200 m contour)? Which better shows the continuous terrain surface?</div>
+      <div class="answer">
+        <ul>
+          <li><strong>Vector contours</strong> make it easier to identify a specific elevation — you can trace the 200 m line and know exactly where that elevation occurs. The contour is a crisp, labelled feature.</li>
+          <li><strong>Raster DEM</strong> better shows the continuous terrain surface — the colour gradient reveals the smooth transition from valleys to ridges, showing the full 3D shape that contour lines only sample at 50 m intervals.</li>
+        </ul>
+        This illustrates the fundamental trade-off: vectors are precise for specific features, rasters capture continuous spatial variation.
+      </div>
+      <div class="marking">Must identify vector = precise boundaries at known elevation, raster = continuous surface. Accept reasonable alternative phrasing.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q2: The DEM has 8 m resolution (250,000 cells). The contour lines have far fewer vertices. What information is lost between contour lines that the raster preserves? What does the vector preserve that the raster does not?</div>
+      <div class="answer">
+        <strong>What the raster preserves that vectors lose:</strong>
+        <ul>
+          <li>Elevation values <em>between</em> contour lines — the raster has a value at every 8 m cell, while contours only mark specific elevation thresholds (every 50 m here)</li>
+          <li>Local terrain detail — small ridges, depressions, or saddle points that fall between contour intervals are invisible in the vector but captured in the raster</li>
+        </ul>
+        <strong>What the vector preserves that the raster loses:</strong>
+        <ul>
+          <li>The <em>exact</em> position of a known elevation — contour lines are mathematically precise boundaries, while the raster quantises position to 8 m cells</li>
+          <li>Topological relationships — a contour line explicitly connects all points at the same elevation; in the raster, you'd need to compute this from the grid</li>
+        </ul>
+      </div>
+      <div class="marking">Must identify: raster captures between-contour variation; vector gives precise position of known elevation. One example of each is sufficient for full marks.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q3: Click a contour line and note the vertex count. Each vertex stores an [x, y] coordinate pair. How does the data storage per elevation value compare between the vector model (vertices along lines) and the raster model (one value per cell)?</div>
+      <div class="answer">
+        <strong>Raster:</strong> each cell stores one elevation value. For this area: 500 x 500 = <strong>250,000 values</strong>, one per 8 m cell. Storage is uniform — every cell costs the same regardless of terrain complexity.
+        <br><br>
+        <strong>Vector:</strong> each contour line stores a variable number of [x, y] vertex pairs. A complex contour in steep terrain might have hundreds of vertices; a simple one might have only a few dozen. Total vertices across all contours is much less than 250,000.
+        <br><br>
+        <strong>Key insight:</strong> Vectors are <em>adaptive</em> — they use more storage where boundaries are complex and less where they are simple. Rasters use <em>uniform</em> storage everywhere, even in flat areas where elevation barely changes. This means vectors are more storage-efficient for sparse features (like contours), while rasters are more efficient for truly continuous fields.
+      </div>
+      <div class="marking">Must contrast uniform (raster) vs. adaptive (vector) storage. Bonus for noting vectors are more efficient for sparse/discrete features, rasters for continuous fields.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q4: If you needed to calculate the slope gradient at every point across this area, which data model would you use — vector contours or the raster DEM? Why?</div>
+      <div class="answer">
+        <strong>Raster DEM</strong> is the clear choice for slope calculation:
+        <ul>
+          <li>Slope = rate of elevation change, calculated from the elevation <em>difference between adjacent cells</em> using a moving window (e.g., 3x3 kernel)</li>
+          <li>The regular grid structure makes this a straightforward neighbourhood operation — compare each cell to its 8 neighbours</li>
+          <li>Contour vectors don't have elevation values between lines, so you'd first need to <em>interpolate</em> them back into a grid (essentially creating a raster) before calculating slope</li>
+        </ul>
+        This is a key advantage of rasters for <strong>spatial analysis</strong>: operations like slope, aspect, flow direction, and viewshed all rely on the regular grid structure for efficient neighbourhood calculations.
+      </div>
+      <div class="marking">Must choose raster and explain that slope needs continuous elevation (neighbourhood operation on grid). Accept mention of needing to interpolate contours first.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q5: An engineer needs to design a road route across this terrain, keeping the gradient below 10%. Would you deliver the data as contour lines, a DEM raster, or both? What resolution would be appropriate?</div>
+      <div class="answer">
+        <strong>Both</strong> is the ideal answer:
+        <ul>
+          <li><strong>DEM raster</strong> for slope/gradient analysis — compute slope everywhere to identify feasible corridors (areas below 10% gradient)</li>
+          <li><strong>Contour lines</strong> for route planning — engineers traditionally use contours to design switchbacks and maintain grade, as contour spacing directly shows steepness</li>
+          <li>The DEM enables automated least-cost path analysis; contours enable manual design refinement</li>
+        </ul>
+        <strong>Resolution:</strong> For road design, <strong>1-5 m resolution</strong> would be appropriate. The 8 m DEM here is adequate for corridor selection but too coarse for detailed design (an 8 m cell could miss a 5 m gully). Final design typically requires sub-metre LiDAR survey.
+        <br><br>
+        Accepting just "raster" or "both" with good justification is fine. The key insight is matching resolution to the engineering decision being made.
+      </div>
+      <div class="marking">Accept raster or both with reasonable justification. Must discuss resolution requirements. Bonus for distinguishing corridor-level (coarser) from design-level (finer) resolution needs.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- LECTURE 04 -->
+<!-- ================================================================== -->
+<div class="lecture-block">
+  <div class="lecture-header" onclick="toggleLecture(this)">
+    <h2>Lecture 04 — CRS & Projections: CRS Mismatch Demo</h2>
+    <span class="toggle">&#9660;</span>
+  </div>
+  <div class="lecture-body">
+
+    <div class="qa-pair">
+      <div class="question">Q1: In the World View, compare the green Greenland and orange Africa outlines. Estimate how their sizes compare on this map. Now look up their actual areas online (in km²). How much does the map distort them, and why?</div>
+      <div class="answer">
+        <strong>On the map:</strong> Greenland appears to be roughly the same size as Africa — perhaps slightly smaller.
+        <br><br>
+        <strong>Actual areas (students should find these online):</strong>
+        <ul>
+          <li><strong>Greenland:</strong> ~2,166,000 km²</li>
+          <li><strong>Africa:</strong> ~30,370,000 km²</li>
+          <li><strong>Ratio:</strong> Africa is approximately <strong>14× larger</strong> than Greenland!</li>
+        </ul>
+        <strong>Why?</strong> Web maps use the <strong>Web Mercator projection</strong>, which preserves angles (shape) but severely distorts area, especially at high latitudes. Greenland is at ~60-84°N where the Mercator stretching factor is extreme — features are stretched by 1/cos(latitude) in each direction. At 70°N, this means features appear ~8.5× their true relative area. Africa straddles the equator where there is minimal distortion.
+        <br><br>
+        This is the classic "Mercator distortion" — all web maps (Google Maps, OpenStreetMap, Leaflet) inherit this problem because they use EPSG:3857 (Web Mercator).
+      </div>
+      <div class="marking">Must report actual areas from online research showing Africa is ~14× larger than Greenland. Must identify Mercator projection as the cause and explain that distortion increases with latitude. Bonus for mentioning cos(latitude) scaling factor.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q2: Switch to New Brighton view and move your mouse across the map. Watch the coordinate bar. What units does WGS84 use? What units does NZTM use? Which CRS would you use to measure a 100m pipe?</div>
+      <div class="answer">
+        <ul>
+          <li><strong>WGS84 (EPSG:4326)</strong> uses <strong>degrees</strong> (Longitude/Latitude). Coordinates look like (172.73°, -43.50°).</li>
+          <li><strong>NZTM (EPSG:2193)</strong> uses <strong>metres</strong> (Easting/Northing). Coordinates look like (1,580,000 E, 5,180,000 N).</li>
+        </ul>
+        For measuring a 100m pipe: <strong>NZTM (EPSG:2193)</strong> because it's a projected CRS with metre units. Distances can be calculated directly. In WGS84, a buffer of "100" would mean 100 degrees (~11,000 km), not 100 metres.
+      </div>
+      <div class="marking">Must identify: WGS84 = degrees, NZTM = metres, and choose NZTM for the pipe measurement with reasoning about units.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q3: Click the Mismatch! button. Read the warning. Explain in your own words: what is the difference between set_crs() and to_crs()? What goes wrong if you use the wrong one?</div>
+      <div class="answer">
+        <ul>
+          <li><strong>set_crs()</strong> — Labels/declares the CRS of existing coordinates WITHOUT changing them. Use when data has no CRS metadata but you know what CRS the coordinates are in. "These numbers ARE in NZTM."</li>
+          <li><strong>to_crs()</strong> — Mathematically transforms coordinates FROM the current CRS TO a new one. Use when you need to reproject data. "Convert these NZTM coordinates TO WGS84."</li>
+        </ul>
+        <strong>Wrong use scenarios:</strong>
+        <ul>
+          <li>Using <strong>set_crs(4326) on NZTM data</strong> — the coordinates (1575000, 5180000) get labelled as degrees. The data appears to be at longitude 1,575,000° which doesn't exist. The data is "lost" on the globe.</li>
+          <li>Using <strong>to_crs(2193) on data that has no CRS set</strong> — GeoPandas raises an error because it doesn't know what coordinate system to transform FROM.</li>
+        </ul>
+      </div>
+      <div class="marking">Must clearly distinguish "label" vs "transform." Example of wrong usage is required for full marks.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q4: Use the Measure Distance tool on the New Brighton map. Click two points ~500m apart. Compare the result in metres vs degrees. At latitude 43.5°S, how many metres is 0.001° of longitude?</div>
+      <div class="answer">
+        Students should measure and find that the same distance is expressed very differently:
+        <ul>
+          <li>In <strong>metres</strong>: a direct, intuitive measurement (e.g., 500 m)</li>
+          <li>In <strong>degrees</strong>: a small decimal (e.g., ~0.006°) that varies with latitude</li>
+        </ul>
+        <strong>At 43.5°S:</strong> 1° of longitude = 111,320 × cos(43.5°) ≈ 111,320 × 0.7254 ≈ <strong>80,700 m</strong>.
+        <br>So 0.001° ≈ <strong>80.7 m</strong>.
+        <br><br>
+        At the equator, 0.001° ≈ 111 m. This demonstrates why degrees are unreliable for engineering measurements — the same angular distance represents different physical distances depending on latitude.
+      </div>
+      <div class="marking">Must compute or approximate 0.001° ≈ ~80 m at 43.5°S using cos(latitude) correction. Key insight: degrees are latitude-dependent, metres are not.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q5: After the Canterbury earthquakes, the ground moved up to 0.5m vertically and several metres horizontally. What implications does this have for spatial datasets created before 2010? Think about flood models, pipe networks, and property boundaries.</div>
+      <div class="answer">
+        Pre-2010 datasets are now <strong>positionally inaccurate</strong> because the ground itself moved:
+        <ul>
+          <li><strong>Horizontal shift</strong> — features that were accurately surveyed before the earthquakes are now in the wrong location by up to several metres. Pipe networks, property boundaries, and road alignments no longer match reality.</li>
+          <li><strong>Vertical shift</strong> — DEMs and contour data are wrong by up to 0.5m. For flood modelling, this is critical — a 0.5m error in a flat coastal area like New Brighton means the flood boundary could be hundreds of metres off.</li>
+          <li><strong>Datum implications</strong> — NZGD2000 coordinates assigned before the earthquake may need transformation to match post-earthquake ground positions. LINZ released localised deformation models to handle this.</li>
+        </ul>
+        This is why <strong>temporal currency</strong> and <strong>lineage</strong> are critical data quality dimensions — the "fitness for purpose" of any pre-2010 Canterbury dataset must be reassessed.
+      </div>
+      <div class="marking">Must connect earthquake ground movement to data accuracy degradation. Mention of both horizontal and vertical effects for full marks. Bonus for mentioning LINZ deformation model.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- LECTURE 05 -->
+<!-- ================================================================== -->
+<div class="lecture-block">
+  <div class="lecture-header" onclick="toggleLecture(this)">
+    <h2>Lecture 05 — Spatial Relationships: Spatial Query Explorer</h2>
+    <span class="toggle">&#9660;</span>
+  </div>
+  <div class="lecture-body">
+
+    <div class="qa-pair">
+      <div class="question">Q1: Set the marae buffer to 200m. How many buildings fall within this buffer? Now try 1km. How does the buffer operation transform a point geometry (marae) into an area you can query against?</div>
+      <div class="answer">
+        Building counts will vary with the demo data, but typically:
+        <ul>
+          <li>200m buffer: a small number of buildings immediately adjacent to each marae</li>
+          <li>1km buffer: significantly more buildings as the circular zones overlap and cover larger areas</li>
+        </ul>
+        <strong>The buffer operation</strong> transforms a point (0-dimensional, no area) into a <strong>polygon</strong> (2-dimensional, with area). This is essential because you cannot perform area-based spatial queries (intersects, within, contains) between a point and another geometry in a meaningful way — the point has no extent.
+        <br><br>
+        In GeoPandas: <code>marae.buffer(200)</code> creates a circular polygon of radius 200m around each marae point. You can then use <code>gpd.sjoin(buildings, marae_buffered, predicate='within')</code> to find buildings inside those buffers.
+      </div>
+      <div class="marking">Must explain that buffer converts a point to a polygon (adds area). Bonus for mentioning the GeoPandas workflow or noting that buffer distance choice affects results significantly.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q2: Set the buffer to 500m and switch between Intersects and Within. Why do far more roads match Intersects than Within, while for buildings the two counts are almost identical? What does this tell you about feature size relative to the query geometry?</div>
+      <div class="answer">
+        The query geometry is a <strong>500 m circle</strong> around the marae. The answer is about the <strong>size of each feature relative to that circle</strong>:
+        <ul>
+          <li><strong>Roads are long lines.</strong> A road only has to touch the circle anywhere along its length to satisfy <em>intersects</em>, so many roads that run past the marae match. To satisfy <em>within</em> the whole road must lie inside the circle, and almost no road is that short &mdash; most cross the circle's edge and continue outside. Hence a large <em>intersects</em> count and a small <em>within</em> count.</li>
+          <li><strong>Buildings are small polygons</strong> (tens of metres). If a building touches the circle it is almost always entirely inside it, so <em>intersects</em> and <em>within</em> agree. The only differences are the handful of buildings that straddle the circle's edge.</li>
+        </ul>
+        <strong>The lesson:</strong> the gap between <em>intersects</em> and <em>within</em> grows with feature size relative to the query geometry. For features much smaller than the buffer the two predicates are interchangeable; for features larger than, or comparable to, the buffer the choice of predicate changes the answer, so you must state which one you used.
+      </div>
+      <div class="marking">Must link the difference to feature size/extent (lines are long, buildings are small) and explain why within is the stricter test. Bonus for noting the edge-straddling buildings or stating that the predicate must be reported with the result.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q3: What is the difference between Euclidean distance and network distance? Give an example where using Euclidean distance would significantly underestimate actual travel distance in this area.</div>
+      <div class="answer">
+        <ul>
+          <li><strong>Euclidean distance</strong> = straight-line "as the crow flies" distance between two points</li>
+          <li><strong>Network distance</strong> = distance along the actual road/path network, following the routes people must travel</li>
+        </ul>
+        <strong>Example:</strong> In New Brighton, the Avon-Heathcote Estuary creates a large water body between communities. Two points on opposite sides of the estuary might be only <strong>500m apart in Euclidean distance</strong> but require <strong>5+ km of road travel</strong> around the estuary to actually reach each other. During a flood evacuation, using Euclidean distance would drastically underestimate response times and travel distances.
+        <br><br>
+        Another example: one-way streets, bridges, and road closures due to flooding mean the road network distance can be much longer than straight-line distance.
+      </div>
+      <div class="marking">Clear distinction between the two types + a concrete local example. Estuary/river barrier is the most compelling example for this area.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q4: Select Contains — the count is always 0. Explain why, and give an example of two layers in this map where contains would return matches. What does this tell you about predicate direction?</div>
+      <div class="answer">
+        In this demo the test is <strong>feature.contains(buffer)</strong>: a feature matches only if the <strong>whole marae buffer lies inside it</strong>. No building and no road is large enough to swallow a circle of 200 m to 2 km radius, so the count is always 0.
+        <br><br>
+        <strong>Predicate direction:</strong> <em>contains</em> is <em>within</em> with the arguments swapped. <code>buffer.contains(building)</code> is exactly <code>building.within(buffer)</code>, and in the demo that returns hundreds of matches. So the predicate is not "wrong", it is being asked in the direction that can never be true.
+        <br><br>
+        <strong>An example from this map where contains would return matches:</strong> swap the roles so the buffer is the container: "which buildings does the 500 m buffer contain?" In GeoPandas: <code>gpd.sjoin(marae_buffer, buildings, predicate='contains')</code>. In general, <em>contains</em> is the right choice when the large polygon is on the left: suburbs containing buildings, a flood extent containing marae, a catchment containing stream reaches.
+      </div>
+      <div class="marking">Must explain that contains asks whether the buffer sits entirely inside the feature, which small features can never satisfy, and that contains/within are the same relationship read in opposite directions. Accept any example where a large polygon is the container.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q5: The Coastline layer is a line, not an area. Why is "which buildings are within the coastline?" a question you cannot answer as posed, and what would you have to build first to make it valid? Which of the four predicates above still mean something against a line geometry, and which are meaningless?</div>
+      <div class="answer">
+        A line has <strong>length but no interior</strong>, so "within the coastline" asks whether a building sits inside something that has no inside. The question is ill-posed, not merely hard. To make it valid you first have to <strong>build a polygon</strong> from the line, for example:
+        <ul>
+          <li><strong>buffer</strong> the coastline by a distance ("buildings within 200 m of the coast"), or</li>
+          <li>close the line into an area ("land" vs "sea", or a coastal hazard zone polygon), then ask which buildings are within that polygon.</li>
+        </ul>
+        <strong>Which predicates still mean something against a line:</strong>
+        <ul>
+          <li><strong>intersects</strong> &mdash; meaningful: does the building footprint touch or cross the line? (A road crossing the coastline would match, e.g. a jetty or causeway.)</li>
+          <li><strong>disjoint</strong> &mdash; meaningful: the exact opposite, no shared point.</li>
+          <li><strong>within</strong> &mdash; meaningless for a polygon or point feature against a line: only a point lying exactly on the line, or a piece of the line itself, can be "within" it.</li>
+          <li><strong>contains</strong> &mdash; meaningless here: a building would have to contain a stretch of the coastline.</li>
+        </ul>
+        The general rule: <em>within</em> and <em>contains</em> need the container to be a polygon; <em>intersects</em> and <em>disjoint</em> work between any geometry types.
+      </div>
+      <div class="marking">Must say a line has no interior and that a polygon (buffer or enclosed area) has to be built first. Must sort the predicates: intersects and disjoint remain valid, within and contains do not. Bonus for a concrete coastal buffer distance or hazard-zone example.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- LECTURE 06 -->
+<!-- ================================================================== -->
+<div class="lecture-block">
+  <div class="lecture-header" onclick="toggleLecture(this)">
+    <h2>Lecture 06 — Cartography Essentials: Map Styling</h2>
+    <span class="toggle">&#9660;</span>
+  </div>
+  <div class="lecture-body">
+
+    <div class="qa-pair">
+      <div class="question">Q1: Toggle between Natural Breaks, Equal Interval, Quantile, and Manual classification. Which method makes the low-lying coastal area appear most at risk? Why does the classification method change the visual story?</div>
+      <div class="answer">
+        <strong>Accept either "Quantile" or "Manual (flood-focused)" with sound reasoning:</strong>
+        <ul>
+          <li><strong>Quantile</strong> puts an equal number of features in each class. Because the elevation data is heavily skewed toward low values, the computed quantile breaks split the low coastal elevations across several classes — giving fine colour detail (and an alarming look) exactly where the land is lowest.</li>
+          <li><strong>Manual (flood-focused)</strong> places breaks deliberately at decision-relevant thresholds (e.g. 1m, 2m, 3m), so the low coastal strip is explicitly picked out in the highest-risk colours — arguably the most dramatic portrayal of coastal risk.</li>
+        </ul>
+        <strong>Equal Interval</strong> downplays risk because it spreads classes evenly across the full elevation range (e.g., 0-5, 5-10, 10-15, ...), lumping most of the low coastal area into a single class.
+        <br><br>
+        <strong>Natural Breaks (Jenks)</strong> usually gives the most balanced view, finding natural clusters in the data.
+        <br><br>
+        This demonstrates that <strong>classification choice is a cartographic decision that affects perception</strong> — the same data can look alarming or reassuring depending on how you classify it.
+      </div>
+      <div class="marking">Accept quantile or manual (flood-focused) as "most at risk" provided the student explains how the breaks fall on skewed low-lying data. Key takeaway: classification affects message.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q2: List the 7 required elements of a professional map. Check the map elements panel — which elements are present and which are missing? What else is this map missing?</div>
+      <div class="answer">
+        The 7 required elements:
+        <ol>
+          <li><strong>Title</strong> — what the map shows</li>
+          <li><strong>Legend</strong> — what colours/symbols mean</li>
+          <li><strong>Scale bar</strong> — distance reference</li>
+          <li><strong>North arrow</strong> — orientation</li>
+          <li><strong>Data source/attribution</strong> — where the data came from</li>
+          <li><strong>Projection/CRS</strong> — which coordinate system</li>
+          <li><strong>Date</strong> — when the map (and its data) were produced</li>
+        </ol>
+        The demo map will typically have a title and legend but may be missing scale bar, north arrow, CRS label, and/or date. Students should identify exactly which are present and which are missing.
+      </div>
+      <div class="marking">Must list all 7 elements and correctly identify which the demo has/lacks. This is an exam-ready question.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q3: Why is a rainbow colour scheme problematic for flood depth? What colour scheme would you use instead, and why?</div>
+      <div class="answer">
+        Rainbow (jet) colourmap is problematic because:
+        <ul>
+          <li><strong>Not perceptually uniform</strong> — the human eye perceives brightness changes in yellow/cyan much more than in blue/red, creating false boundaries in the data</li>
+          <li><strong>No intuitive order</strong> — is red "more" or "less" than green? There's no natural ordering, so viewers can't intuitively rank values</li>
+          <li><strong>Colour vision deficiency</strong> — approximately 8% of males have red-green colour blindness, making portions of the rainbow indistinguishable</li>
+        </ul>
+        <strong>Better choice:</strong> A <strong>sequential single-hue scheme</strong> (e.g., light blue → dark blue for flood depth) because:
+        <ul>
+          <li>Blue intuitively represents water</li>
+          <li>Darker = deeper is natural ordering</li>
+          <li>Works for colour-blind viewers (varies only in lightness)</li>
+        </ul>
+        ColorBrewer "Blues" or "YlGnBu" are good options.
+      </div>
+      <div class="marking">Must identify at least 2 problems with rainbow + recommend sequential scheme with reasoning.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q4: You're mapping "number of flooded buildings per suburb." Why is this misleading without normalisation? What should you map instead?</div>
+      <div class="answer">
+        Raw counts are misleading because <strong>larger suburbs will always have more flooded buildings simply because they have more buildings total</strong>. A suburb with 1,000 buildings and 100 flooded (10%) looks worse than a suburb with 50 buildings and 40 flooded (80%) when mapped by count, even though the smaller suburb is proportionally much more affected.
+        <br><br>
+        You should map a <strong>normalised/derived variable</strong> such as:
+        <ul>
+          <li><strong>Percentage of buildings flooded</strong> (flooded / total × 100) — most common</li>
+          <li><strong>Flooded buildings per km²</strong> — accounts for different suburb areas</li>
+          <li><strong>Flooded building area as % of total building area</strong> — accounts for building sizes</li>
+        </ul>
+        This is the <strong>"choropleth trap"</strong> — mapping raw counts on a choropleth always favours larger areas. Always normalise.
+      </div>
+      <div class="marking">Must identify the size-bias problem and recommend percentage/density as the solution. "Choropleth trap" terminology is a bonus.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q5: A colleague presents a flood risk map to a council meeting using red (high risk) to green (safe). What specific feedback would you give about the colour choice?</div>
+      <div class="answer">
+        Specific feedback:
+        <ul>
+          <li><strong>Colour vision issue</strong> — red-green is the most common colour blindness (deuteranopia affects ~8% of males). Roughly 1-2 councillors in the room may not be able to distinguish high risk from safe areas.</li>
+          <li><strong>Cultural associations</strong> — while red=danger, green=safe seems intuitive, this is a Western cultural convention. In some contexts, green can mean "action needed" and red can mean "stop/complete."</li>
+          <li><strong>Diverging vs sequential</strong> — red-to-green is a diverging scheme (implies a meaningful midpoint). If flood risk is a continuous scale from low to high, a sequential scheme (light to dark) is more appropriate.</li>
+        </ul>
+        <strong>Recommendation:</strong> Replace with a sequential scheme like white → orange → dark red, or use ColorBrewer "OrRd" which is colour-blind safe and perceptually ordered.
+      </div>
+      <div class="marking">Must mention colour blindness (8% prevalence) and recommend an alternative. Bonus for diverging vs sequential discussion.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- LECTURE 07 -->
+<!-- ================================================================== -->
+<div class="lecture-block">
+  <div class="lecture-header" onclick="toggleLecture(this)">
+    <h2>Lecture 07 — Vector Analysis: Buller River Catchment Workflow</h2>
+    <span class="toggle">&#9660;</span>
+  </div>
+  <div class="lecture-body">
+
+    <div class="qa-pair">
+      <div class="question">Q1: Set the riparian buffer to 100m, then 500m. How does the estimated buffer area change? Is the relationship linear with buffer distance? Why or why not?</div>
+      <div class="answer">
+        The demo estimates buffer area as <strong>total stream length &times; 2 &times; buffer distance</strong>. With ~3,241 stream reaches totalling roughly 10,000-15,000 km of channel:
+        <ul>
+          <li>At <strong>100m</strong>: area &asymp; 12,000 km &times; 2 &times; 0.1 km &asymp; <strong>~2,400 km&sup2;</strong></li>
+          <li>At <strong>500m</strong>: area &asymp; 12,000 km &times; 2 &times; 0.5 km &asymp; <strong>~12,000 km&sup2;</strong></li>
+        </ul>
+        The simple formula gives a <strong>linear relationship</strong> (5&times; the distance = 5&times; the area). However, in reality the relationship is <strong>sub-linear</strong> because:
+        <ul>
+          <li><strong>Buffers overlap</strong> where streams are close together &mdash; the actual buffered area is less than the sum of individual buffers (you can't count the same land twice)</li>
+          <li>At 500m, many neighbouring stream buffers merge into a single continuous zone, so the effective new area gained per additional metre of buffer decreases</li>
+          <li>At very large buffer distances, the riparian zone covers nearly the entire catchment and additional distance adds minimal new area</li>
+        </ul>
+        This is why the <strong>union</strong> (dissolve) of individual buffers is needed for an accurate area calculation.
+      </div>
+      <div class="marking">Key insight: simple formula gives linear but real area is sub-linear due to buffer overlap. Must mention overlap/merge effect. Bonus for mentioning dissolve/union as the fix.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q2: Use Clip to select a catchment. What is the difference between clipping streams to a catchment boundary vs. doing a spatial join? When would you use each?</div>
+      <div class="answer">
+        <ul>
+          <li><strong>Clip</strong> &mdash; physically cuts stream geometry at the catchment boundary. Stream segments inside are kept; parts outside are removed. A stream crossing the boundary is split, and only the interior portion is retained. Use when you need the <strong>exact geometry</strong> inside the boundary (e.g., calculating total stream length within a catchment).</li>
+          <li><strong>Spatial join (sjoin)</strong> &mdash; tags each stream with the catchment ID it falls within, but does NOT cut the geometry. The full stream feature is kept intact. Use when you need to <strong>identify which streams belong to which catchment</strong> without modifying their geometry (e.g., listing stream IDs per catchment).</li>
+        </ul>
+        <strong>Buller example:</strong>
+        <ul>
+          <li>"What is the total stream length inside catchment 42?" &rarr; <strong>Clip</strong> (need accurate length, streams at boundary must be cut)</li>
+          <li>"How many stream reaches does each catchment contain?" &rarr; <strong>Spatial join</strong> (need count, not modified geometry)</li>
+        </ul>
+      </div>
+      <div class="marking">Must clearly distinguish geometry-cutting (clip) from attribute-tagging (sjoin) with appropriate use cases. Buller-specific examples preferred.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q3: Switch to Dissolve and toggle between Order 2 and Order 3. What happens to the sub-catchment boundaries? What aggregate statistics would be useful to compute during the dissolve (e.g., total stream length per merged catchment)?</div>
+      <div class="answer">
+        When dissolving from Order 2 (3,241 polygons) to Order 3 (1,458 polygons):
+        <ul>
+          <li><strong>Internal boundaries disappear</strong> &mdash; where two order-2 sub-catchments shared a boundary within the same order-3 parent, that boundary is removed</li>
+          <li><strong>External boundaries are preserved</strong> &mdash; the outer edges of the merged catchments remain</li>
+          <li>The result is <strong>fewer, larger polygons</strong> that tile the same landscape</li>
+        </ul>
+        Useful <strong>aggregate statistics</strong> (computed during dissolve via <code>aggfunc</code>):
+        <ul>
+          <li><strong>count</strong> &mdash; number of order-2 sub-catchments per order-3 catchment (tributary complexity)</li>
+          <li><strong>sum of stream length</strong> &mdash; total channel length per merged catchment</li>
+          <li><strong>sum of area</strong> &mdash; total catchment area (should match the merged polygon area)</li>
+          <li><strong>mean slope</strong> or <strong>mean elevation</strong> &mdash; average terrain characteristics per catchment</li>
+        </ul>
+        The dissolve + aggregation pattern converts detailed data into summary statistics at a coarser spatial scale.
+      </div>
+      <div class="marking">Must explain that internal boundaries disappear while external ones remain. Must name at least 2 useful aggregate statistics with hydrological relevance.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q4: In Spatial Join mode, some order-3 catchments contain many order-2 streams while others contain few. What might explain this variation? What is the "one-to-many" problem in spatial joins?</div>
+      <div class="answer">
+        <strong>Variation in stream count per catchment</strong> depends on:
+        <ul>
+          <li><strong>Catchment area</strong> &mdash; larger catchments physically contain more tributaries</li>
+          <li><strong>Drainage density</strong> &mdash; steep, wet areas (western ranges) have denser stream networks than flat, drier areas</li>
+          <li><strong>Geology</strong> &mdash; impermeable rock generates more surface drainage; permeable rock (limestone/karst) has fewer surface streams</li>
+        </ul>
+        <strong>One-to-many problem:</strong> When a stream reach intersects <strong>multiple</strong> catchment polygons (e.g., it lies exactly on a boundary), the spatial join creates <strong>duplicate rows</strong> &mdash; the same stream appears once for each catchment it touches. This inflates the stream count.
+        <br><br>
+        <strong>Solutions:</strong>
+        <ul>
+          <li>Use <strong>sjoin</strong> with <code>predicate='within'</code> (stream must be entirely inside) rather than <code>'intersects'</code></li>
+          <li>Use the stream's <strong>midpoint</strong> (centroid) for the join instead of the full line geometry &mdash; a point can only be within one polygon</li>
+          <li><strong>drop_duplicates()</strong> after the join if only one assignment is needed</li>
+        </ul>
+      </div>
+      <div class="marking">Must explain variation (area/density/geology) and the one-to-many duplicate problem. Must propose at least one solution (within predicate, midpoint, or drop_duplicates).</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q5: Design a GIS workflow to answer: "What is the total area of riparian buffer zones within the 10 largest sub-catchments?" List each step and the operation used.</div>
+      <div class="answer">
+        <ol>
+          <li><strong>Calculate area</strong> of each sub-catchment polygon (geometry.area in projected CRS) and add as an attribute</li>
+          <li><strong>Sort</strong> catchments by area descending and <strong>select</strong> the top 10 &rarr; creates "target catchments" layer</li>
+          <li><strong>Clip</strong> the stream network to the target catchments &rarr; keeps only streams inside the 10 largest catchments</li>
+          <li><strong>Buffer</strong> the clipped streams by the desired riparian distance (e.g., 100m) &rarr; creates buffer polygons around each stream segment</li>
+          <li><strong>Dissolve</strong> (unary_union) all buffer polygons to remove overlapping areas &rarr; single multipolygon of riparian zone</li>
+          <li><strong>Calculate area</strong> of the dissolved riparian zone &rarr; total riparian area in km&sup2;</li>
+        </ol>
+        <strong>Key insight:</strong> The dissolve in step 5 is essential &mdash; without it, overlapping buffers from adjacent streams would be double-counted. The workflow uses four different vector operations (select, clip, buffer, dissolve) in sequence.
+      </div>
+      <div class="marking">Must include: selection of top 10 by area, clip to those catchments, buffer streams, dissolve to remove overlap, and final area calculation. Accept variations in order. Key: dissolve removes overlap.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- LECTURE 08 -->
+<!-- ================================================================== -->
+<div class="lecture-block">
+  <div class="lecture-header" onclick="toggleLecture(this)">
+    <h2>Lecture 08 — Hydrological Analysis: From DEM to Catchment (Charteris Bay)</h2>
+    <span class="toggle">&#9660;</span>
+  </div>
+  <div class="lecture-body">
+
+    <div class="qa-pair">
+      <div class="question">Q1 — Accumulation: Switch to Flow accumulation. Hover over a ridge crest, then a valley floor. What values do you get? Now look at Flow direction in the inspector: which neighbour does D8 pick, and why that one?</div>
+      <div class="answer">
+        <ul>
+          <li><strong>Ridge crests: 0</strong> (or single digits just below the crest). Nothing drains into a ridge cell. About 5% of land cells in this DEM have accumulation 0.</li>
+          <li><strong>Valley floors: hundreds to tens of thousands</strong>. The main stream reaching Charteris Bay collects <strong>82,469 cells &asymp; 5.3 km&sup2;</strong>, the highest value in the DEM.</li>
+        </ul>
+        <strong>D8 rule:</strong> the inspector highlights the neighbour with the <strong>steepest downhill slope</strong>, i.e. the largest drop divided by distance. Diagonal neighbours are 8&radic;2 &asymp; 11.3 m away, not 8 m, so a diagonal cell needs a bigger drop to win. All the water goes to that one neighbour.
+        <br><br>
+        Tutor note: zoomed in, students see long parallel arrows on smooth slopes. That is a known D8 artefact: with only 8 directions, flow on planar slopes runs in straight parallel lines instead of spreading. Multiple-flow-direction methods (D&infin;, MFD) address this.
+      </div>
+      <div class="marking">Must give ridge &asymp; 0 and valley in the thousands, and state that D8 sends all flow to the steepest downhill of the 8 neighbours. Bonus for the &radic;2 diagonal distance or the parallel-flow artefact.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q2 — Threshold: Turn on the OpenStreetMap streams. Find the threshold where the extracted network best matches them. Write down the threshold and the network length. Where does the DEM put a stream that the map doesn't have, and which one is wrong?</div>
+      <div class="answer">
+        There is no single right answer; a <strong>good match is roughly 500&ndash;2,000 cells (3&ndash;13 ha upstream)</strong>. Reference values from the demo:
+        <table style="margin:8px 0;border-collapse:collapse;font-size:0.95em">
+          <tr><th style="padding:2px 8px">Threshold (cells)</th><th style="padding:2px 8px">Network length</th><th style="padding:2px 8px">Drainage density</th></tr>
+          <tr><td style="padding:2px 8px">100</td><td style="padding:2px 8px;text-align:center">95.5 km</td><td style="padding:2px 8px;text-align:center">6.6 km/km&sup2;</td></tr>
+          <tr><td style="padding:2px 8px">500</td><td style="padding:2px 8px;text-align:center">45.1 km</td><td style="padding:2px 8px;text-align:center">3.1 km/km&sup2;</td></tr>
+          <tr><td style="padding:2px 8px">840 (default)</td><td style="padding:2px 8px;text-align:center">35.1 km</td><td style="padding:2px 8px;text-align:center">2.4 km/km&sup2;</td></tr>
+          <tr><td style="padding:2px 8px">2,000</td><td style="padding:2px 8px;text-align:center">24.0 km</td><td style="padding:2px 8px;text-align:center">1.7 km/km&sup2;</td></tr>
+          <tr><td style="padding:2px 8px">10,000</td><td style="padding:2px 8px;text-align:center">7.6 km</td><td style="padding:2px 8px;text-align:center">0.5 km/km&sup2;</td></tr>
+        </table>
+        Below ~200 cells the DEM draws a "stream" in almost every gully; above ~5,000 only the main stems survive and mapped tributaries disappear. The threshold is an <strong>analyst choice</strong>, which is why it must be reported and validated.
+        <br><br>
+        <strong>Who is wrong?</strong> Usually neither is simply right. Many extra DEM streams are <strong>ephemeral gullies</strong> that run only in storms and that OSM volunteers never mapped; OSM is incomplete and hand-digitised. The DEM knows nothing about infiltration, springs, culverts or drains, so it can also put a channel where there is none. Validation needs field data or aerial imagery; neither layer is ground truth.
+      </div>
+      <div class="marking">Must give a threshold and length consistent with the table, and explain that low thresholds over-extract and high thresholds under-extract. Full marks for recognising that the OSM layer is itself incomplete and that the threshold is an analyst decision.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q3 — Sinks: Untick Fill sinks and note the number of sinks. Now switch the precision to 0.1 m, then 1 m. It is the same terrain, so where did the extra sinks come from? Place a pour point near the coast on the largest stream and compare its area with filling on and off. Are most sinks real depressions or DEM artefacts?</div>
+      <div class="answer">
+        <strong>Sinks: 5</strong> at full (float) precision, <strong>260</strong> at 0.1 m, <strong>11,647</strong> at 1 m.
+        <br><br>
+        The extra sinks come purely from <strong>rounding the elevations</strong>. Neighbouring cells rounded to the same value form a flat patch with no downhill neighbour, so D8 has nowhere to send the water. Integer-metre storage (as in SRTM and many older DEM products) is a classic source of artefact sinks and flats.
+        <br><br>
+        Catchment at the main stream's coastal outlet (with snapping):
+        <table style="margin:8px 0;border-collapse:collapse;font-size:0.95em">
+          <tr><th style="padding:2px 8px">Precision</th><th style="padding:2px 8px">Filled</th><th style="padding:2px 8px">Not filled</th></tr>
+          <tr><td style="padding:2px 8px">Float</td><td style="padding:2px 8px;text-align:center">5.28 km&sup2;</td><td style="padding:2px 8px;text-align:center">4.33 km&sup2;</td></tr>
+          <tr><td style="padding:2px 8px">0.1 m</td><td style="padding:2px 8px;text-align:center">5.36 km&sup2;</td><td style="padding:2px 8px;text-align:center">0.09 km&sup2;</td></tr>
+          <tr><td style="padding:2px 8px">1 m</td><td style="padding:2px 8px;text-align:center">5.28 km&sup2;</td><td style="padding:2px 8px;text-align:center">&asymp; 0</td></tr>
+        </table>
+        Even the 5 full-precision sinks cut the catchment by 18%, because water reaching a sink stops there and never arrives at the outlet. Filling makes the result stable at about 5.3 km&sup2; whatever the precision. The deepest fill at full precision is only <strong>0.18 m</strong>, so these are tiny <strong>artefacts</strong>, not real ponds. Real sinks do exist (volcanic craters, quarries, karst) and should be kept, not filled.
+      </div>
+      <div class="marking">Must give the three sink counts, explain rounding &rarr; flats &rarr; no downhill neighbour, and show the unfilled catchment is much smaller. Bonus for noting that real depressions exist and filling is a judgement.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q4 — Pour points: Drop a pour point on a stream. Then untick Snap and click one or two cells beside the channel. Why does the catchment collapse? How does this explain a delineated catchment boundary that runs straight through a gully?</div>
+      <div class="answer">
+        Example on the main stream 1 km above the coast: on the channel the catchment is <strong>4.82 km&sup2;</strong>. One to five cells (8&ndash;40 m) to the side, without snapping, it is only <strong>0.06&ndash;0.2 ha</strong>, a patch of hillslope.
+        <br><br>
+        A cell beside the channel sits on the <strong>valley side</strong>: its D8 arrow points into the channel, so only the strip of slope above it drains through it. All the upstream water flows past in the neighbouring channel cells without touching the pour point.
+        <br><br>
+        That is the "boundary through a gully" error: an outlet a few metres off the true channel captures only part of the drainage, and the boundary cuts across valleys it should contain. The fix is <strong>pour-point snapping</strong> (move the outlet to the highest-accumulation cell within a small radius, 40 m here) and always checking the result visually.
+      </div>
+      <div class="marking">Must explain that off-channel cells have tiny accumulation and that the outlet must sit on the high-accumulation channel cell. Full marks for linking this to snapping and to the gully-boundary symptom.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q5 — Culvert design: Imagine a coastal road crossing the main stream. Delineate its catchment and read the rational-method peak flow. Move the culvert 500 m upstream: how do the area and Q change? Which input (C, i or A) would you trust least, and why?</div>
+      <div class="answer">
+        With the defaults (C = 0.35, i = 40 mm/h) at the coast: <strong>A &asymp; 5.28 km&sup2;, Q = 0.35 &times; 40 &times; 5.28 / 3.6 &asymp; 20.5 m&sup3;/s</strong>. Exact values depend on where students click.
+        <br><br>
+        500 m upstream the area barely changes (&asymp; 5.28 km&sup2;) because no big tributary joins on that reach; by 1 km upstream it is 4.82 km&sup2; and Q &asymp; 18.7 m&sup3;/s. Q scales linearly with A, so moving a structure past a tributary junction gives a <strong>step change</strong> in design flow.
+        <br><br>
+        <strong>Least trustworthy:</strong> generally <strong>C</strong> and <strong>i</strong>. C is a lumped guess for land cover, soil and wetness (about 0.2 for forest vs 0.9 for pavement). i depends on the return period and on a time of concentration that the rational method needs but this demo does not compute. A is the most defensible input, <em>provided</em> sinks were filled and the pour point snapped (Q3, Q4). The rational method is normally limited to small catchments (a few km&sup2;), so 5 km&sup2; is at its edge.
+      </div>
+      <div class="marking">Must calculate Q with the formula and correct units, describe how A and Q change upstream, and justify which input is least certain. Bonus for time of concentration or the small-catchment limit of the rational method.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- LECTURE 09 -->
+<!-- ================================================================== -->
+<div class="lecture-block">
+  <div class="lecture-header" onclick="toggleLecture(this)">
+    <h2>Lecture 09 — Raster Analysis: DEM Explorer (Banks Peninsula)</h2>
+    <span class="toggle">&#9660;</span>
+  </div>
+  <div class="lecture-body">
+
+    <div class="qa-pair">
+      <div class="question">Q1: Switch to Hillshade mode. Try each sun direction preset. Which sun angle best reveals the radial erosion valleys on the volcanic peaks? Why does sun direction matter for DEM visualisation?</div>
+      <div class="answer">
+        The erosion valleys radiate outward from each volcanic peak in all directions, so <strong>no single sun angle reveals all valleys equally</strong>. However:
+        <ul>
+          <li><strong>East (90°/30°)</strong> — best for north-south running valleys (creates cross-shadows)</li>
+          <li><strong>South (180°/30°)</strong> — best for east-west running valleys</li>
+          <li><strong>NE (45°/60°)</strong> — high sun from NE gives subtle shading on SW-facing slopes</li>
+          <li><strong>NW default (315°/45°)</strong> — standard cartographic convention; good general overview</li>
+        </ul>
+        Lighting direction matters because hillshade works by <strong>simulating shadows</strong>. Features aligned <strong>parallel to the light source</strong> cast no shadow and become invisible. Features <strong>perpendicular to the light</strong> show maximum contrast. This is why cartographers often create multiple hillshades or use a multidirectional hillshade for general-purpose terrain visualisation.
+      </div>
+      <div class="marking">Must connect sun direction to feature visibility — parallel features become invisible. Key: radial valleys need multiple angles to see all of them. Bonus for multidirectional mention.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q2: Switch to Slope. Where are the steepest areas (red)? How do they relate to the volcanic peaks and erosion channels? Name one engineering application where slope data is critical.</div>
+      <div class="answer">
+        Steepest areas (red) are found on:
+        <ul>
+          <li><strong>Flanks of the volcanic peaks</strong> — the conical slopes between summit and base</li>
+          <li><strong>Walls of erosion valleys</strong> — where streams have cut into the volcanic flanks</li>
+          <li><strong>Ridge connecting the two peaks</strong> — steep sides of the saddle between summits</li>
+        </ul>
+        Flat areas (green) occur on the <strong>coastal plains</strong> to the north and the <strong>harbour basin</strong> between peaks.
+        <br><br>
+        <strong>Engineering applications:</strong>
+        <ul>
+          <li><strong>Landslide hazard mapping</strong> — slopes above ~30° are prone to failure</li>
+          <li><strong>Road design</strong> — maximum road gradients (typically 8-12%)</li>
+          <li><strong>Construction site suitability</strong> — steep terrain requires cut/fill earthworks</li>
+          <li><strong>Erosion risk assessment</strong> — steeper slopes = higher erosion potential (USLE equation)</li>
+        </ul>
+      </div>
+      <div class="marking">Must identify steep areas on volcanic flanks and valley walls, flat on plains/harbour. At least one valid engineering application with reasoning.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q3: This DEM has 500 × 500 cells at 8 m resolution. Calculate the total area covered in km². Show your working: Area = cols × rows × (cell size)².</div>
+      <div class="answer">
+        <strong>Calculation:</strong>
+        <br>
+        Number of cells = 500 × 500 = <strong>250,000 cells</strong>
+        <br><br>
+        Area per cell = 8m × 8m = <strong>64 m²</strong>
+        <br><br>
+        Total area = 250,000 × 64 = <strong>16,000,000 m²</strong>
+        <br><br>
+        Convert: 16,000,000 / 1,000,000 = <strong>16 km²</strong>
+        <br><br>
+        Cross-check: the grid covers 4 km × 4 km = 16 km² ✓
+      </div>
+      <div class="marking">Must show: cell count (500×500), cell area (8×8), multiplication, and unit conversion. Full marks for showing the cross-check.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q4: What is the difference between local, focal, and zonal raster operations? Give one example of each that could be applied to this DEM.</div>
+      <div class="answer">
+        <ul>
+          <li><strong>Local (cell-by-cell)</strong> — operates on each cell independently. Example: <strong>convert elevation from metres to feet</strong> (multiply each cell by 3.281). Or: reclassify elevation into zones (0-200m = lowland, 200-500m = hill, >500m = peak).</li>
+          <li><strong>Focal (neighbourhood)</strong> — uses a moving window of surrounding cells. Example: <strong>compute slope or hillshade</strong> using a 3×3 window — each cell's slope depends on the elevation of its 8 neighbours. Both slope and hillshade in this demo are focal operations.</li>
+          <li><strong>Zonal (region-based)</strong> — computes statistics within defined zones. Example: <strong>mean elevation per catchment</strong> — use catchment boundaries as zones and calculate the average DEM value within each drainage area.</li>
+        </ul>
+        (Global operations use the entire raster — e.g., computing flow accumulation where every cell's value depends on the full upstream network.)
+      </div>
+      <div class="marking">Correct definition + relevant Banks Peninsula example for each type = full marks. The elevation conversion / slope-hillshade / zonal stats trio is the expected answer.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q5: If you resampled this 8m DEM to 100m cells, what terrain features would be lost? Which resampling method is appropriate for continuous elevation data vs. categorical land-use data?</div>
+      <div class="answer">
+        At <strong>100m resolution</strong>, each cell covers 10,000 m². Features lost would include:
+        <ul>
+          <li><strong>Narrow erosion valleys</strong> (many are only 2-4 cells wide at 8m, i.e. 16-32m) — these would be smoothed out at 100m</li>
+          <li><strong>Sharp ridge lines</strong> — blended with surrounding slopes</li>
+          <li><strong>Small-scale terrain roughness</strong> — volcanic rock outcrops, minor gullies</li>
+          <li><strong>Peak summits</strong> — the highest point would be averaged with surrounding lower cells, reducing the apparent peak height</li>
+        </ul>
+        <strong>Resampling methods:</strong>
+        <ul>
+          <li><strong>DEM (continuous data) &rarr; Bilinear or bicubic interpolation</strong> — produces smooth interpolated values. Appropriate because elevation varies continuously and intermediate values are physically meaningful (a value of 450m between a 400m and 500m cell makes sense).</li>
+          <li><strong>Land use (categorical data) &rarr; Nearest neighbour</strong> — assigns each new cell the value of the closest original cell. Appropriate because land-use categories are discrete — there is no meaningful "average" of "forest" and "urban." Bilinear would create nonsensical intermediate values.</li>
+        </ul>
+      </div>
+      <div class="marking">Must identify specific features lost at coarser resolution. Must state: bilinear/cubic for continuous, nearest-neighbour for categorical, with reasoning why. Classic exam question.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q6: Switch to Flood mode. Set the threshold to 50 m. How many cells are flooded and what area does that cover? Show the calculation using the formula: area = cell_count × 8². Now increase to 100 m — does the flooded area double? Why or why not?</div>
+      <div class="answer">
+        At <strong>50m threshold</strong>: the demo shows the count of cells with elevation &gt; 0 and &lt; 50m. The exact number depends on the DEM data, but typically ~20,000–30,000 cells.
+        <br><br>
+        <strong>Area calculation:</strong>
+        <br>
+        Area = cell_count &times; 8&sup2; = cell_count &times; 64 m²
+        <br>
+        e.g. if 25,000 cells: Area = 25,000 &times; 64 = 1,600,000 m² = <strong>1.60 km²</strong>
+        <br><br>
+        At <strong>100m threshold</strong>: the flooded area does <strong>NOT</strong> simply double. This is because:
+        <ul>
+          <li>Elevation distribution is <strong>not uniform</strong> — the hypsometric curve of Banks Peninsula is nonlinear</li>
+          <li>The terrain has <strong>steep volcanic flanks</strong> between ~50m and ~200m, meaning relatively fewer cells in that elevation band</li>
+          <li>Most low-elevation cells are on the <strong>coastal plains</strong>, which are already captured by the 50m threshold</li>
+          <li>This is a <strong>local raster operation</strong> — each cell is independently classified as flooded or not based solely on its own elevation value</li>
+        </ul>
+        The relationship between threshold and flooded area is nonlinear and depends on the terrain's <strong>hypsometric distribution</strong> (the cumulative distribution of area with elevation).
+      </div>
+      <div class="marking">Must show the area formula (cells × 64 m²) and correctly state that area does not double. Key insight: terrain elevation is not uniformly distributed. Bonus for mentioning hypsometric curve or identifying this as a local raster operation.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- LECTURE 10 -->
+<!-- ================================================================== -->
+<div class="lecture-block">
+  <div class="lecture-header" onclick="toggleLecture(this)">
+    <h2>Lecture 10 — Risk Assessment & MCE: Risk Calculator</h2>
+    <span class="toggle">&#9660;</span>
+  </div>
+  <div class="lecture-body">
+
+    <div class="qa-pair">
+      <div class="question">Q1: Look at the risk map. Identify each MCE component for the New Brighton flood scenario. What data layer represents Hazard? Exposure? Vulnerability?</div>
+      <div class="answer">
+        In this demo the three components are <strong>formulas computed per elevation-contour line</strong> and combined into one colour-coded score — they are not separate toggleable layers:
+        <ul>
+          <li><strong>Hazard</strong> = modelled flood depth: contour elevation vs the selected sea level. Visible as the <strong>dashed flood boundary</strong> — higher sea level = deeper flooding = higher hazard.</li>
+          <li><strong>Exposure</strong> = an <strong>elevation-based proxy</strong> for the built environment (low-lying flat land carries most buildings and roads). The <strong>roads and coastline layers</strong> on the map are the visible context for this — note the densest road network sits on the lowest ground.</li>
+          <li><strong>Vulnerability</strong> = <strong>proximity to the coast combined with low elevation</strong> — assets nearer the shoreline score as more susceptible.</li>
+        </ul>
+        <strong>Beyond the demo:</strong> a full MCE would use separate data layers for each component — flood depth rasters (hazard); building footprints, road networks, marae and infrastructure (exposure); building age/construction type, fragility curves, or NZDep social deprivation (vulnerability). Note that <strong>buildings and marae layers are NOT in this demo</strong> — students should recognise the demo substitutes elevation proxies for real asset data.
+        <br><br>
+        <strong>Risk is spatial</strong> — all three components vary across the map, so the risk score varies by location. GIS is the platform that combines them.
+      </div>
+      <div class="marking">Must identify how each component is represented in the demo (formulas on contours; roads/coastline as visible exposure context) AND what real data layers a full analysis would use. Key insight: all three are spatial and combine through overlay.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q2: Set weights to Hazard 60%, Exposure 30%, Vulnerability 10%. Then change to equal weights (33/33/33). How does the risk map change? Which weighting is more appropriate for coastal flood planning?</div>
+      <div class="answer">
+        With <strong>Hazard=60%</strong>: the risk map is dominated by flood depth — areas with deeper flooding show high risk regardless of how many buildings are there. The map highlights WHERE the water goes.
+        <br><br>
+        With <strong>equal weights</strong>: risk is more balanced — an area with moderate flooding but high building density and vulnerable populations may score higher than a deeply flooded but empty area. The map highlights WHERE the consequences are.
+        <br><br>
+        <strong>For coastal flood planning:</strong> Hazard-weighted (60/30/10) is more appropriate for <strong>emergency response planning</strong> (need to know where water goes first). Equal weights are more appropriate for <strong>long-term land use planning</strong> (need to balance all factors).
+        <br><br>
+        There is no single "correct" weighting — it depends on the <strong>decision being made</strong>. This is why MCE always requires sensitivity analysis.
+      </div>
+      <div class="marking">Must describe how the map changes with different weights and argue for a weighting with justification. Key: "no single correct answer" + depends on the decision context.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q3: At 2 m sea level rise, what is the estimated total economic loss? Read from the impact panel. Are the $600k/house and $1.5M/km road assumptions reasonable for Christchurch in 2025?</div>
+      <div class="answer">
+        At 2m sea level rise (read directly from the demo's impact panel):
+        <ul>
+          <li>Flooded area: <strong>2.39 km²</strong></li>
+          <li>Flooded houses: 2.39 × 150 = <strong>359 houses</strong> (panel shows 359)</li>
+          <li>Flooded roads: 2.39 × 10 = <strong>23.9 km</strong></li>
+          <li>House loss: 359 × $600,000 = <strong>~$215.4 million NZD</strong></li>
+          <li>Road loss: 23.9 × $1,500,000 = <strong>~$35.9 million NZD</strong></li>
+          <li><strong>Total: ~$251.3 million NZD</strong></li>
+        </ul>
+        <strong>Are assumptions reasonable?</strong>
+        <ul>
+          <li>$600k/house is low for 2025 Christchurch — median house price is closer to $650-750k. However, flood damage rarely destroys 100% of value, so a lower figure may represent partial damage.</li>
+          <li>$1.5M/km of road is reasonable for urban road replacement including services underneath.</li>
+          <li>Missing: contents insurance, business disruption, infrastructure (pipes, power), health costs, displacement costs. Actual losses could be 2-3× higher.</li>
+        </ul>
+      </div>
+      <div class="marking">Must show calculation steps and get reasonable total. Critical evaluation of assumptions required — accept any well-reasoned critique.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q4: Compare the seawall cost vs relocation cost at your chosen sea level. Which strategy do you recommend and why? Consider both economics and non-monetary factors.</div>
+      <div class="answer">
+        <strong>Cost comparison (demo mitigation cards — relocation covers ALL flooded houses):</strong>
+        <ul>
+          <li><strong>Seawall:</strong> 12 km × $50M/km = <strong>$600 million NZD</strong> at 1-2m (the +$10M/km per metre surcharge kicks in above 2m: $720M at 3m, $840M at 4m)</li>
+          <li><strong>Managed retreat at 2m:</strong> 359 flooded houses × 4 people × $264,450/person ≈ <strong>$380 million NZD</strong></li>
+          <li>At other levels: ~$9.5M at 1m, ~$529M at 3m — in this demo retreat is cheaper than the wall at every scenario</li>
+        </ul>
+        Relocation looks cheaper, but the comparison isn't straightforward:
+        <ul>
+          <li>Seawall protects <strong>ALL</strong> assets behind it (thousands of buildings, roads, infrastructure) — cost per protected asset is actually lower</li>
+          <li>Seawall has <strong>ongoing maintenance costs</strong> and may fail catastrophically under extreme events</li>
+          <li>Relocation is <strong>permanent</strong> — removes exposure entirely, with no residual risk of defence failure</li>
+          <li>Relocation has <strong>social/cultural costs</strong> that are hard to quantify (community disruption, tangata whenua connections to land)</li>
+        </ul>
+        <strong>Extension discussion (not shown in the demo):</strong> a targeted policy might relocate only the ~100 most vulnerable houses: 100 × 4 × $264,450 ≈ <strong>$105.8M</strong> — far cheaper than either option above, but it leaves the remaining exposure unaddressed.
+        <br><br>
+        <strong>Recommendation:</strong> A hybrid approach — relocate the most at-risk houses in the lowest-lying areas AND invest in targeted coastal protection for the remaining community. Pure cost-benefit analysis is insufficient; social and cultural factors must be weighed.
+      </div>
+      <div class="marking">Must read both costs from the demo cards at a stated sea level and discuss non-financial factors. Hybrid/nuanced answer is strongest. Accept any well-reasoned recommendation.</div>
+    </div>
+
+    <div class="qa-pair">
+      <div class="question">Q5: Why is sensitivity analysis essential in MCE? Change one weight by ±20% — does the highest-risk area change location? What does this tell you about result robustness?</div>
+      <div class="answer">
+        <strong>Sensitivity analysis</strong> tests how much the output changes when inputs vary. It's essential because:
+        <ul>
+          <li>MCE weights are <strong>subjective</strong> — different stakeholders would assign different weights</li>
+          <li>If the result changes dramatically with a small weight adjustment, the conclusion is <strong>not robust</strong> and shouldn't be used for major decisions without further analysis</li>
+          <li>If the result is stable across a range of weights, the conclusion is <strong>robust</strong> and can be used with more confidence</li>
+        </ul>
+        <strong>In the demo:</strong> If changing Hazard weight from 50% to 30% causes the #1 risk area to become #3, the ranking is <strong>sensitive to hazard weighting</strong>. This means the team needs to invest more effort in agreeing on hazard weight, or acknowledge the uncertainty in their recommendation.
+        <br><br>
+        <strong>Best practice:</strong> Report results as ranges ("Area X ranks #1-3 depending on weight scenario") rather than single values, and use equal-weight baseline as a reference.
+        <br><br>
+        <strong>Tutor note:</strong> in this demo all three criteria derive from elevation and distance-to-coast, so they are strongly correlated — students should EXPECT the highest-risk ranking to be robust (barely move) under &plusmn;20% weight changes. That is itself the teaching point: correlated criteria mute sensitivity, whereas independent criteria (e.g. real building-stock exposure) would swing more.
+      </div>
+      <div class="marking">Must explain: weights are subjective, sensitivity tests robustness, unstable results = low confidence. Bonus for "report as ranges" recommendation.</div>
+    </div>
+
+  </div>
+</div>
+
+</div>
+
+<button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
+
+<script>
+function toggleLecture(header) {
+  header.classList.toggle('open');
+  var body = header.nextElementSibling;
+  body.classList.toggle('open');
+}
+// Open first lecture by default
+document.querySelector('.lecture-header').click();
+</script>
+
+</body>
+</html>
